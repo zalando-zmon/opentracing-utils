@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Setup file for opentracing-utils.
+"""
+from setuptools import setup, find_packages
+
+
+MAIN_PACKAGE = 'opentracing_utils'
+VERSION = '0.1'
+DESCRIPTION = 'OpenTracing utils'
+
+
+setup(
+    name='opentracing-utils',
+    version=VERSION,
+    description=DESCRIPTION,
+    long_description=open('README.rst').read(),
+    license=open('LICENSE').read(),
+    packages=find_packages(exclude=['tests']),
+    install_requires=[
+        'opentracing',
+    ],
+    setup_requires=[
+        'opentracing',
+        'pytest-runner',
+    ],
+    test_suite='tests',
+    tests_require=[
+        'opentracing',
+        'pytest', 'pytest_cov', 'mock==2.0.0'
+    ],
+    include_package_data=True,
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Environment :: Console',
+        'Operating System :: POSIX :: Linux',
+        'Operating System :: MacOS :: MacOS X',
+        'Topic :: Utilities',
+        'Topic :: System :: Monitoring',
+        'Topic :: System :: Networking :: Monitoring',
+    ]
+)
