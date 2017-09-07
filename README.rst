@@ -4,6 +4,14 @@ OPENTRACING PYTHON UTILS
 
 **Early stage WIP + Experimental**
 
+
+.. image:: https://api.travis-ci.org/zalando-zmon/opentracing-utils.svg?branch=master
+  :target: https://travis-ci.org/zalando-zmon/opentracing-utils
+
+.. image:: https://codecov.io/gh/zalando-zmon/opentracing-utils/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/zalando-zmon/opentracing-utils
+
+
 Convenient utilities for adding `OpenTracing <http://opentracing.io>`_ support in your python projects.
 
 Features
