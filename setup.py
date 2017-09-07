@@ -7,6 +7,15 @@ Setup file for opentracing-utils.
 from setuptools import setup, find_packages
 
 
+TEST_REQUIREMENTS = (
+    'basictracer',
+    'mock==2.0.0',
+    'opentracing',
+    'pytest',
+    'pytest_cov',
+    'requests',
+)
+
 MAIN_PACKAGE = 'opentracing_utils'
 VERSION = '0.1'
 DESCRIPTION = 'OpenTracing utils'
@@ -27,10 +36,7 @@ setup(
         'pytest-runner',
     ],
     test_suite='tests',
-    tests_require=[
-        'opentracing',
-        'pytest', 'pytest_cov', 'mock==2.0.0'
-    ],
+    tests_require=TEST_REQUIREMENTS,
     include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',

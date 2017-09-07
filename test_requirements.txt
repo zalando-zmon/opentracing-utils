@@ -1,2 +1,6 @@
 opentracing
 requests
+basictracer
+pytest
+pytest_cov
+mock==2.0.0

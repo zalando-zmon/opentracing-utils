@@ -45,7 +45,7 @@ Usage
     # decorate all your functions that require tracing
 
     # Normal traced function
-    @trace
+    @trace()
     def trace_me():
         pass
 
@@ -94,7 +94,7 @@ NOT SUPPORTED AT THE MOMENT
     # decorate all your functions that require tracing
 
     # Normal traced function
-    @trace
+    @trace()
     def trace_me():
         pass
 
@@ -111,7 +111,7 @@ NOT SUPPORTED AT THE MOMENT
 
 
     # Async function
-    @trace_async
+    @trace_async()
     async def just_wait():
         await asyncio.sleep(1)
 
