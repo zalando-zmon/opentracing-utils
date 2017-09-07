@@ -16,7 +16,7 @@ Features
 * Context agnostic, so no external **context implementation** dependency (no tornado, Flask, Django etc ...).
 * Try to be less verbose - just add the ``@trace`` decorator.
 * Could be more verbose when needed, without complexity - just accept ``**kwargs`` and get the span passed to your traced functions via ``@trace(pass_span=True)``.
-* Support asyncio/async-await coroutines.
+* Support asyncio/async-await coroutines. (drop support for py2.7)
 * Support **gevent**.
 * Ability to add OpenTracing support to external libs/clients:
 
@@ -56,7 +56,7 @@ Usage
 
 
     # Start a fresh trace - any parent spans will be ignored
-    @trace(operation_name='epoch', ignore_parent_span=True):
+    @trace(operation_name='epoch', ignore_parent_span=True)
     def start_fresh():
 
         user = {'id': 1}
@@ -71,6 +71,8 @@ Usage
 
 @trace_async decorator
 ----------------------
+
+NOT SUPPORTED AT THE MOMENT
 
 .. code-block:: python
 
