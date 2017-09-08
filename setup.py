@@ -18,7 +18,7 @@ TEST_REQUIREMENTS = (
 
 MAIN_PACKAGE = 'opentracing_utils'
 VERSION = '0.1'
-DESCRIPTION = 'OpenTracing utils'
+DESCRIPTION = 'OpenTracing utilities'
 
 
 setup(

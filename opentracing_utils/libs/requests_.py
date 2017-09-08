@@ -42,8 +42,7 @@ def requests_send_wrapper(self, request, **kwargs):
         try:
             carrier = {}
             opentracing.tracer.inject(request_span.context, Format.HTTP_HEADERS, carrier)
-            for k, v in carrier.items():
-                request.add_header(k, v)
+            request.headers.update(carrier)
         except opentracing.UnsupportedFormatException:
             logger.error('Failed to inject span context in request!')
 
@@ -52,4 +51,5 @@ def requests_send_wrapper(self, request, **kwargs):
 
         return resp
     else:
+        logger.warn('Failed to extract span during initiating request!')
         return __requests_http_send(self, request, **kwargs)
