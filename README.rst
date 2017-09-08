@@ -165,7 +165,7 @@ For tracing ``requests`` client library
 
         span = opentracing.tracer.start_span(operation_name='main')
         with span:
-            # Following call will be traced, and parent span will be inherited
+            # Following call will be traced, and parent span will be inherited and propagated via HTTP headers
             requests.get('https://example.org')
 
 
