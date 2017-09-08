@@ -161,7 +161,6 @@ For tracing ``requests`` client library
 
     import requests
 
-    @trace()
     def main():
 
         span = opentracing.tracer.start_span(operation_name='main')
