@@ -20,7 +20,7 @@ Features
 ``opentracing-utils`` should provide and aims at the following:
 
 * No extrenal dependencies, only `opentracing-python <https://github.com/opentracing/opentracing-python>`_.
-* No threadlocals.
+* No threadlocals. Either pass spans safely or fallback to callstack frames inspection!
 * Context agnostic, so no external **context implementation** dependency (no tornado, Flask, Django etc ...).
 * Try to be less verbose - just add the ``@trace`` decorator.
 * Could be more verbose when needed, without complexity - just accept ``**kwargs`` and get the span passed to your traced functions via ``@trace(pass_span=True)``.
@@ -39,7 +39,7 @@ Using pip
 
 .. code-block:: bash
 
-    pip install -e git+ssh://git@github.com/zalando-zmon/opentracing-utils.git#egg=opentracing_utils
+    pip install -U -e git+ssh://git@github.com/zalando-zmon/opentracing-utils.git#egg=opentracing_utils
 
 
 or by cloning the repo
@@ -92,6 +92,57 @@ Usage
         # trace_me will have ``epoch`` span as its parent.
         trace_me()
 
+
+Broken traces
+^^^^^^^^^^^^^
+
+If you plan to break nested traces, then it is recommended to pass the span to traced functions
+
+.. code-block:: python
+
+    top_span = opentracing.tracer.start_span(operation_name='top_trace')
+    with top_span:
+
+        # This one gets ``top_span`` as parent span
+        call_traced()
+
+        # Here, we break the trace, since we create a new span with no parents
+        broken_span = opentracing.tracer.start_span(operation_name='broken_trace')
+        with broken_span:
+            # This one gets ``broken_span`` as parent span (not consistent in 2.7 and 3.5)
+            call_traced()
+
+            # pass span as safer/guaranteed trace here
+            call_traced(span=broken_span)
+
+        # ISSUE: Due to stack call inspection, next call will get ``broken_span`` instead of ``top_span``, which is wrong!!
+        call_traced()
+
+        # To get the ``top_span`` as parent span, then pass it to the traced call
+        call_traced(span=top_span)
+
+
+Multiple traces
+^^^^^^^^^^^^^
+
+If you plan to use multiple traces then it is better to always pass the span as it is safer/guaranteed.
+
+.. code-block:: python
+
+    first_span = opentracing.tracer.start_span(operation_name='first_trace')
+    with first_span:
+
+        # This one gets ``first_span`` as parent span
+        call_traced()
+
+    second_span = opentracing.tracer.start_span(operation_name='second_trace')
+    with second_span:
+
+        # ISSUE: This one **could** get ``first_span`` as parent span (not consistent among oython versions)
+        call_traced()
+
+        # It is better to pass ``second_span`` explicitly
+        call_traced(span=second_span)
 
 
 @trace_async decorator

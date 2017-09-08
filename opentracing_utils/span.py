@@ -12,10 +12,6 @@ def get_new_span(f, operation_name=None, inpsect_stack=True, ignore_parent_span=
     if not ignore_parent_span:
         span_arg_name, parent_span = get_parent_span(inpsect_stack=inpsect_stack, **kwargs)
 
-        if not parent_span and inpsect_stack:
-            span_arg_name = 'opentracing_span'
-            parent_span = inspect_span_from_stack()
-
     op_name = f.__name__ if not operation_name else operation_name
 
     return span_arg_name, opentracing.tracer.start_span(operation_name=op_name, child_of=parent_span)
@@ -65,7 +61,7 @@ def get_parent_span(inpsect_stack=True, **kwargs):
     span_arg_name, parent_span = get_span_from_kwargs(**kwargs)
 
     if not parent_span and inpsect_stack:
-        span_arg_name = None
+        span_arg_name = '__OPENTRACINGUTILS_SPAN'  # hmmm!
         parent_span = inspect_span_from_stack()
 
     return span_arg_name, parent_span

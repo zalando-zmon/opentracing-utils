@@ -13,7 +13,9 @@ def trace(component=None, operation_name=None, tags=None, pass_span=False, inspe
             span_arg_name, current_span = get_new_span(
                 f, inspect_stack=inspect_stack, ignore_parent_span=ignore_parent_span, **kwargs)
 
-            if not pass_span and span_arg_name:
+            if pass_span and span_arg_name and span_arg_name not in kwargs:
+                kwargs[span_arg_name] = current_span
+            else:
                 kwargs.pop(span_arg_name, None)
 
             current_span = adjust_span(current_span, operation_name, component, tags)

@@ -9,3 +9,6 @@ class Recorder(SpanRecorder):
 
     def record_span(self, span):
         self.spans.append(span)
+
+    def reset(self):
+        self.spans = []
