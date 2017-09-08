@@ -145,6 +145,31 @@ If you plan to use multiple traces then it is better to always pass the span as 
         call_traced(span=second_span)
 
 
+External libraries and clients
+------------------------------
+
+Requests
+^^^^^^^^
+
+For tracing ``requests`` client library
+
+.. code-block:: python
+
+    # trace_requests should be called as early as possible, before importing requests
+    from opentracing_utils import trace_requests
+    trace_requests()  # noqa
+
+    import requests
+
+    @trace()
+    def main():
+
+        span = opentracing.tracer.start_span(operation_name='main')
+        with span:
+            # Following call will be traced, and parent span will be inherited
+            requests.get('https://example.org')
+
+
 @trace_async decorator
 ----------------------
 
