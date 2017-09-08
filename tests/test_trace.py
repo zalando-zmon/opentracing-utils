@@ -25,3 +25,30 @@ def test_trace_single():
     for span in recorder.spans[:3]:
         assert span.context.trace_id == test_span.context.trace_id
         assert span.parent_id == test_span.context.span_id
+
+
+def test_trace_nested():
+
+    @trace()
+    def parent():
+        nested()
+
+    @trace()
+    def nested():
+        pass
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    test_span = opentracing.tracer.start_span(operation_name='test_trace')
+
+    with test_span:
+        parent()
+
+    assert len(recorder.spans) == 3
+
+    assert recorder.spans[0].context.trace_id == test_span.context.trace_id
+    assert recorder.spans[0].parent_id == recorder.spans[1].context.span_id
+
+    assert recorder.spans[1].context.trace_id == test_span.context.trace_id
+    assert recorder.spans[1].parent_id == test_span.context.span_id

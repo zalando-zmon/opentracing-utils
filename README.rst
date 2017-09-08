@@ -32,6 +32,23 @@ Features
     * TODO ...
 
 
+Install
+=======
+
+Using pip
+
+.. code-block:: bash
+
+    pip install -e git+ssh://git@github.com/zalando-zmon/opentracing-utils.git#egg=opentracing_utils
+
+
+or by cloning the repo
+
+.. code-block:: bash
+
+    python setup.py install
+
+
 Usage
 =====
 
