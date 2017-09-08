@@ -138,7 +138,7 @@ If you plan to use multiple traces then it is better to always pass the span as 
     second_span = opentracing.tracer.start_span(operation_name='second_trace')
     with second_span:
 
-        # ISSUE: This one **could** get ``first_span`` as parent span (not consistent among oython versions)
+        # ISSUE: This one **could** get ``first_span`` as parent span (not consistent among Python versions)
         call_traced()
 
         # It is better to pass ``second_span`` explicitly
