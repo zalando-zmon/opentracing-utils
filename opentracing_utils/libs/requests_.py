@@ -43,11 +43,18 @@ def requests_send_wrapper(self, request, **kwargs):
             .set_tag(opentracing_tags.HTTP_URL, sanitize_url(request.url))
             .set_tag(opentracing_tags.HTTP_METHOD, request.method))
 
+        logger.debug('Opentracing requests: request_span={} parent={} trace={}'.format(
+            request_span.context.span_id, request_span.parent_id, request_span.context.trace_id))
+
         # Inject our current span context to outbound request
         try:
             carrier = {}
             opentracing.tracer.inject(request_span.context, Format.HTTP_HEADERS, carrier)
             request.headers.update(carrier)
+
+            # TODO: Leaky header logs - remove after done testing!
+            logger.debug('Opentracing requests: url={} headers={}'.format(sanitize_url(request.url), request.headers))
+
         except opentracing.UnsupportedFormatException:
             logger.error('Failed to inject span context in request!')
 
@@ -62,6 +69,9 @@ def requests_send_wrapper(self, request, **kwargs):
 
 def sanitize_url(url):
     parsed = parse.urlsplit(url)
+    if not parsed.username and not parsed.password:
+        return url
+
     host = '{}:{}'.format(parsed.hostname, parsed.port) if parsed.port else parsed.hostname
     components = parse.SplitResult(
         parsed.scheme, host, parsed.path, parsed.query, parsed.fragment)
