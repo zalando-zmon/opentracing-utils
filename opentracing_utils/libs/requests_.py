@@ -62,6 +62,8 @@ def requests_send_wrapper(self, request, **kwargs):
 
 def sanitize_url(url):
     parsed = parse.urlsplit(url)
-    components = parse.SplitResult(parsed.scheme, parsed.hostname, parsed.path, parsed.query, parsed.fragment)
+    host = '{}:{}'.format(parsed.hostname, parsed.port) if parsed.port else parsed.hostname
+    components = parse.SplitResult(
+        parsed.scheme, host, parsed.path, parsed.query, parsed.fragment)
 
     return parse.urlunsplit(components)

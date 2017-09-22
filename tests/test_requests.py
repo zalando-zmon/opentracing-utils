@@ -247,6 +247,8 @@ def test_trace_requests_extract_span_fail(monkeypatch):
     ('https://user:pass@example.org/p/1?q=abc#f1', 'https://example.org/p/1?q=abc#f1'),
     ('https://user:@sub1.sub2.example.org/p/1?q=abc#f1', 'https://sub1.sub2.example.org/p/1?q=abc#f1'),
     ('https://user@example.org/p/1/?q=abc#f1', 'https://example.org/p/1/?q=abc#f1'),
+    ('http://user@localhost:8080/p/1/?q=abc#f1', 'http://localhost:8080/p/1/?q=abc#f1'),
+    ('http://user@127.0.0.1:8080/p/1/?q=abc#f1', 'http://127.0.0.1:8080/p/1/?q=abc#f1'),
 ))
 def test_sanitize_url(url, res):
     assert sanitize_url(url) == res
