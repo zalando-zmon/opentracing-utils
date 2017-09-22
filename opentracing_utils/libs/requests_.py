@@ -1,4 +1,9 @@
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()  # noqa
+
 import logging
+import urllib.parse as parse
 
 try:
     import requests
@@ -35,7 +40,7 @@ def requests_send_wrapper(self, request, **kwargs):
     if request_span:
         (request_span
             .set_operation_name(op_name)
-            .set_tag(opentracing_tags.HTTP_URL, request.url)
+            .set_tag(opentracing_tags.HTTP_URL, sanitize_url(request.url))
             .set_tag(opentracing_tags.HTTP_METHOD, request.method))
 
         # Inject our current span context to outbound request
@@ -53,3 +58,10 @@ def requests_send_wrapper(self, request, **kwargs):
     else:
         logger.warn('Failed to extract span during initiating request!')
         return __requests_http_send(self, request, **kwargs)
+
+
+def sanitize_url(url):
+    parsed = parse.urlsplit(url)
+    components = parse.SplitResult(parsed.scheme, parsed.hostname, parsed.path, parsed.query, parsed.fragment)
+
+    return parse.urlunsplit(components)

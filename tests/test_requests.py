@@ -15,6 +15,7 @@ from basictracer import BasicTracer
 
 from .conftest import Recorder
 from opentracing_utils import trace
+from opentracing_utils.libs.requests_ import sanitize_url
 
 
 URL = 'http://example.com/'
@@ -231,3 +232,21 @@ def test_trace_requests_extract_span_fail(monkeypatch):
     assert response.status_code == resp.status_code
 
     logger.warn.assert_called_once()
+
+
+@pytest.mark.parametrize('url,res', (
+    ('https://example.org', 'https://example.org'),
+    ('https://www.example.org', 'https://www.example.org'),
+    ('http://example.org/p/1', 'http://example.org/p/1'),
+    ('http://www.example.org/p/1', 'http://www.example.org/p/1'),
+    ('http://www.example.org/p/1?q=abc&v=123&x=some%20thing', 'http://www.example.org/p/1?q=abc&v=123&x=some%20thing'),
+    ('http://www.example.org/p/1?q=abc#f1', 'http://www.example.org/p/1?q=abc#f1'),
+    ('https://user:pass@www.example.org/p/1?q=abc#f1', 'https://www.example.org/p/1?q=abc#f1'),
+    ('https://user:@www.example.org/p/1?q=abc#f1', 'https://www.example.org/p/1?q=abc#f1'),
+    ('https://user@www.example.org/p/1?q=abc#f1', 'https://www.example.org/p/1?q=abc#f1'),
+    ('https://user:pass@example.org/p/1?q=abc#f1', 'https://example.org/p/1?q=abc#f1'),
+    ('https://user:@sub1.sub2.example.org/p/1?q=abc#f1', 'https://sub1.sub2.example.org/p/1?q=abc#f1'),
+    ('https://user@example.org/p/1/?q=abc#f1', 'https://example.org/p/1/?q=abc#f1'),
+))
+def test_sanitize_url(url, res):
+    assert sanitize_url(url) == res
