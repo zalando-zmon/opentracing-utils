@@ -14,10 +14,12 @@ TEST_REQUIREMENTS = (
     'pytest',
     'pytest_cov',
     'requests',
+    # Third party tracers
+    'instana',
 )
 
 MAIN_PACKAGE = 'opentracing_utils'
-VERSION = '0.1'
+VERSION = '0.2'
 DESCRIPTION = 'OpenTracing utilities'
 
 
@@ -29,6 +31,7 @@ setup(
     license=open('LICENSE').read(),
     packages=find_packages(exclude=['tests']),
     install_requires=[
+        'future',
         'opentracing',
     ],
     setup_requires=[

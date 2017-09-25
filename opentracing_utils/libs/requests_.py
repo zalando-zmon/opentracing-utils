@@ -1,4 +1,9 @@
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()  # noqa
+
 import logging
+import urllib.parse as parse
 
 try:
     import requests
@@ -35,14 +40,21 @@ def requests_send_wrapper(self, request, **kwargs):
     if request_span:
         (request_span
             .set_operation_name(op_name)
-            .set_tag(opentracing_tags.HTTP_URL, request.url)
+            .set_tag(opentracing_tags.HTTP_URL, sanitize_url(request.url))
             .set_tag(opentracing_tags.HTTP_METHOD, request.method))
+
+        logger.debug('Opentracing requests: request_span={} parent={} trace={}'.format(
+            request_span.context.span_id, request_span.parent_id, request_span.context.trace_id))
 
         # Inject our current span context to outbound request
         try:
             carrier = {}
             opentracing.tracer.inject(request_span.context, Format.HTTP_HEADERS, carrier)
             request.headers.update(carrier)
+
+            for k, v in carrier.items():
+                request_span.set_tag(k, v)
+
         except opentracing.UnsupportedFormatException:
             logger.error('Failed to inject span context in request!')
 
@@ -53,3 +65,15 @@ def requests_send_wrapper(self, request, **kwargs):
     else:
         logger.warn('Failed to extract span during initiating request!')
         return __requests_http_send(self, request, **kwargs)
+
+
+def sanitize_url(url):
+    parsed = parse.urlsplit(url)
+    if not parsed.username and not parsed.password:
+        return url
+
+    host = '{}:{}'.format(parsed.hostname, parsed.port) if parsed.port else parsed.hostname
+    components = parse.SplitResult(
+        parsed.scheme, host, parsed.path, parsed.query, parsed.fragment)
+
+    return parse.urlunsplit(components)
