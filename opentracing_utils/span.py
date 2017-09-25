@@ -5,12 +5,21 @@ import opentracing
 from opentracing.ext import tags as opentracing_tags
 
 
-def get_new_span(f, operation_name=None, inpsect_stack=True, ignore_parent_span=False, **kwargs):
+DEFAULT_SPAN_ARG_NAME = '__OPENTRACINGUTILS_SPAN'  # hmmm!
+
+
+def get_new_span(f, operation_name=None, inpsect_stack=True, ignore_parent_span=False, span_extractor=None, **kwargs):
     parent_span = None
-    span_arg_name = None
+    span_arg_name = DEFAULT_SPAN_ARG_NAME
 
     if not ignore_parent_span:
-        span_arg_name, parent_span = get_parent_span(inpsect_stack=inpsect_stack, **kwargs)
+        span_arg_name = DEFAULT_SPAN_ARG_NAME
+
+        if callable(span_extractor):
+            parent_span = span_extractor()
+
+        if not parent_span:
+            span_arg_name, parent_span = get_parent_span(inpsect_stack=inpsect_stack, **kwargs)
 
     op_name = f.__name__ if not operation_name else operation_name
 
@@ -21,7 +30,7 @@ def adjust_span(span, operation_name, component, tags):
     if operation_name:
         span.set_operation_name(operation_name)
 
-    if tags:
+    if tags and type(tags) is dict:
         for k, v in tags.items():
             span.set_tag(k, v)
 
@@ -61,7 +70,7 @@ def get_parent_span(inpsect_stack=True, **kwargs):
     span_arg_name, parent_span = get_span_from_kwargs(**kwargs)
 
     if not parent_span and inpsect_stack:
-        span_arg_name = '__OPENTRACINGUTILS_SPAN'  # hmmm!
+        span_arg_name = DEFAULT_SPAN_ARG_NAME
         parent_span = inspect_span_from_stack()
 
     return span_arg_name, parent_span
