@@ -52,8 +52,8 @@ def requests_send_wrapper(self, request, **kwargs):
             opentracing.tracer.inject(request_span.context, Format.HTTP_HEADERS, carrier)
             request.headers.update(carrier)
 
-            # TODO: Leaky header logs - remove after done testing!
-            logger.debug('Opentracing requests: url={} headers={}'.format(sanitize_url(request.url), request.headers))
+            for k, v in carrier.items():
+                request_span.set_tag(k, v)
 
         except opentracing.UnsupportedFormatException:
             logger.error('Failed to inject span context in request!')
