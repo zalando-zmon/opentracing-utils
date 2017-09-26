@@ -1,6 +1,11 @@
 import pytest
 
 import opentracing
+
+from mock import MagicMock
+
+from opentracing.ext import tags as opentracing_tags
+
 from basictracer import BasicTracer
 
 from .conftest import Recorder
@@ -210,3 +215,72 @@ def test_trace_nested_broken_traces():
 
     assert recorder.spans[-1].parent_id is None
     assert recorder.spans[-1].operation_name == 'test_trace'
+
+
+def test_trace_single_with_tracer_args():
+
+    tags = {'t1': 'v1'}
+    operation_name = 'op_name'
+    component = 'component'
+
+    @trace(tags=tags, operation_name=operation_name, component=component)
+    def f1():
+        pass
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    test_span = opentracing.tracer.start_span(operation_name='test_trace')
+
+    with test_span:
+        f1()
+
+    tags.update({opentracing_tags.COMPONENT: component})
+    assert recorder.spans[0].tags == tags
+
+
+@pytest.mark.parametrize('return_span', (True, False))
+def test_trace_single_with_extractor(return_span):
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    test_span = opentracing.tracer.start_span(operation_name='test_trace')
+
+    other_span = opentracing.tracer.start_span(operation_name='other_span')
+
+    extractor = MagicMock()
+    extractor.return_value = test_span if return_span else None
+
+    @trace(span_extractor=extractor)
+    def f1():
+        pass
+
+    with other_span:
+        # other_span could be ignored if extractor returned a span!
+        f1(span=other_span)
+
+    if return_span:
+        assert recorder.spans[0].context.trace_id == test_span.context.trace_id
+        assert recorder.spans[0].parent_id == test_span.context.span_id
+    else:
+        assert recorder.spans[0].context.trace_id == other_span.context.trace_id
+        assert recorder.spans[0].parent_id == other_span.context.span_id
+
+
+def test_trace_single_with_ignore_parent():
+
+    @trace(ignore_parent_span=True)
+    def f1():
+        pass
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    test_span = opentracing.tracer.start_span(operation_name='test_trace')
+
+    with test_span:
+        # test_span will be ignored!
+        f1()
+
+    assert recorder.spans[0].context.trace_id != test_span.context.trace_id
+    assert recorder.spans[0].parent_id is None
