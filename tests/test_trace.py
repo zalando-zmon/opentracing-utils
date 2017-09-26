@@ -2,6 +2,8 @@ import pytest
 
 import opentracing
 
+from mock import MagicMock
+
 from opentracing.ext import tags as opentracing_tags
 
 from basictracer import BasicTracer
@@ -233,7 +235,8 @@ def test_trace_single_with_tracer_args():
     with test_span:
         f1()
 
-    recorder.spans[0].tags == tags.update({opentracing_tags.COMPONENT: component})
+    tags.update({opentracing_tags.COMPONENT: component})
+    assert recorder.spans[0].tags == tags
 
 
 @pytest.mark.parametrize('return_span', (True, False))
@@ -245,8 +248,8 @@ def test_trace_single_with_extractor(return_span):
 
     other_span = opentracing.tracer.start_span(operation_name='other_span')
 
-    def extractor():
-        return test_span if return_span else None
+    extractor = MagicMock()
+    extractor.return_value = test_span if return_span else None
 
     @trace(span_extractor=extractor)
     def f1():
@@ -254,19 +257,19 @@ def test_trace_single_with_extractor(return_span):
 
     with other_span:
         # other_span could be ignored if extractor returned a span!
-        f1()
+        f1(span=other_span)
 
     if return_span:
-        recorder.spans[0].context.trace_id == test_span.context.trace_id
-        recorder.spans[0].parent_id == test_span.context.span_id
+        assert recorder.spans[0].context.trace_id == test_span.context.trace_id
+        assert recorder.spans[0].parent_id == test_span.context.span_id
     else:
-        recorder.spans[0].context.trace_id == other_span.context.trace_id
-        recorder.spans[0].parent_id == other_span.context.span_id
+        assert recorder.spans[0].context.trace_id == other_span.context.trace_id
+        assert recorder.spans[0].parent_id == other_span.context.span_id
 
 
 def test_trace_single_with_ignore_parent():
 
-    @trace(ignore_parent=True)
+    @trace(ignore_parent_span=True)
     def f1():
         pass
 
@@ -279,5 +282,5 @@ def test_trace_single_with_ignore_parent():
         # test_span will be ignored!
         f1()
 
-    recorder.spans[0].context.trace_id != test_span.context.trace_id
-    recorder.spans[0].parent_id is None
+    assert recorder.spans[0].context.trace_id != test_span.context.trace_id
+    assert recorder.spans[0].parent_id is None

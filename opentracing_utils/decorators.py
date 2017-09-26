@@ -1,6 +1,6 @@
 import functools
 
-from opentracing_utils.span import get_new_span, adjust_span
+from opentracing_utils.span import get_new_span, adjust_span, get_span_from_kwargs
 
 
 def trace(component=None, operation_name=None, tags=None, pass_span=False, inspect_stack=True, ignore_parent_span=False,
@@ -42,6 +42,10 @@ def trace(component=None, operation_name=None, tags=None, pass_span=False, inspe
             if pass_span and span_arg_name and span_arg_name not in kwargs:
                 kwargs[span_arg_name] = current_span
             else:
+                if span_extractor:
+                    kwarg_span, _ = get_span_from_kwargs(**kwargs)
+                    kwargs.pop(kwarg_span, None)
+
                 kwargs.pop(span_arg_name, None)
 
             current_span = adjust_span(current_span, operation_name, component, tags)
