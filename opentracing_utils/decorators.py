@@ -6,7 +6,7 @@ from opentracing_utils.span import get_new_span, adjust_span
 def trace(component=None, operation_name=None, tags=None, pass_span=False, inspect_stack=True, ignore_parent_span=False,
           span_extractor=None, **kwargs):
     """
-    Opentracing tracer docrator. Attempts to extract parent span and create a new span for the decorated function.
+    Opentracing tracer decorator. Attempts to extract parent span and create a new span for the decorated function.
 
     :param commponent: commponent name.
     :type commponent: str

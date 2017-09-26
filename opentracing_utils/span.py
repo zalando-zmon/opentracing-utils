@@ -13,8 +13,6 @@ def get_new_span(f, operation_name=None, inpsect_stack=True, ignore_parent_span=
     span_arg_name = DEFAULT_SPAN_ARG_NAME
 
     if not ignore_parent_span:
-        span_arg_name = DEFAULT_SPAN_ARG_NAME
-
         if callable(span_extractor):
             parent_span = span_extractor()
 
