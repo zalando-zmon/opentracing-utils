@@ -43,9 +43,6 @@ def requests_send_wrapper(self, request, **kwargs):
             .set_tag(opentracing_tags.HTTP_URL, sanitize_url(request.url))
             .set_tag(opentracing_tags.HTTP_METHOD, request.method))
 
-        logger.debug('Opentracing requests: request_span={} parent={} trace={}'.format(
-            request_span.context.span_id, request_span.parent_id, request_span.context.trace_id))
-
         # Inject our current span context to outbound request
         try:
             carrier = {}
