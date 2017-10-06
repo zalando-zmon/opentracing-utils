@@ -200,6 +200,12 @@ def test_trace_requests_no_parent_span(monkeypatch):
     session.headers.update({CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
     response = session.get(URL)
 
+    assert len(recorder.spans) == 1
+
+    assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_URL] == URL
+    assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+
     assert response.status_code == resp.status_code
 
 
