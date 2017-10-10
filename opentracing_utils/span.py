@@ -1,4 +1,5 @@
 import inspect
+import logging
 
 import opentracing
 
@@ -8,13 +9,19 @@ from opentracing.ext import tags as opentracing_tags
 DEFAULT_SPAN_ARG_NAME = '__OPENTRACINGUTILS_SPAN'  # hmmm!
 
 
+logger = logging.getLogger(__name__)
+
+
 def get_new_span(f, operation_name=None, inpsect_stack=True, ignore_parent_span=False, span_extractor=None, **kwargs):
     parent_span = None
     span_arg_name = DEFAULT_SPAN_ARG_NAME
 
     if not ignore_parent_span:
         if callable(span_extractor):
-            parent_span = span_extractor()
+            try:
+                parent_span = span_extractor()
+            except:
+                logger.exception('Failed to extract span from: {}'.format(span_extractor.__name__))
 
         if not parent_span:
             span_arg_name, parent_span = get_parent_span(inpsect_stack=inpsect_stack, **kwargs)
