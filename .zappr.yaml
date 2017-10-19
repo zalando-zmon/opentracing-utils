@@ -6,7 +6,6 @@ approvals:
       from:
         orgs:
           - "zalando"
-          - "zalando-zmon"
 
   # Allow last committer / PR creator to approve as well.
   # This will probably become the default in zappr.
