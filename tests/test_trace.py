@@ -284,3 +284,27 @@ def test_trace_single_with_ignore_parent():
 
     assert recorder.spans[0].context.trace_id != test_span.context.trace_id
     assert recorder.spans[0].parent_id is None
+
+
+def test_trace_separate_functions():
+    @trace()
+    def f1():
+        pass
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    dummy_span = opentracing.tracer.start_span(operation_name='dummy_trace')
+    dummy_span.finish()
+
+    def actual():
+        test_span = opentracing.tracer.start_span(operation_name='test_trace')
+
+        with test_span:
+            f1()
+
+        assert len(recorder.spans) == 3
+        assert recorder.spans[1].context.trace_id == test_span.context.trace_id
+        assert recorder.spans[1].parent_id == test_span.context.span_id
+
+    actual()

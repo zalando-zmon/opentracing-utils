@@ -16,6 +16,7 @@ TEST_REQUIREMENTS = (
     'requests',
     # Third party tracers
     'instana',
+    'lightstep',
 )
 
 MAIN_PACKAGE = 'opentracing_utils'

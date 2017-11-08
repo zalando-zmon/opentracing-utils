@@ -20,7 +20,7 @@ def get_new_span(f, operation_name=None, inpsect_stack=True, ignore_parent_span=
         if callable(span_extractor):
             try:
                 parent_span = span_extractor()
-            except:
+            except Exception:
                 logger.exception('Failed to extract span from: {}'.format(span_extractor.__name__))
 
         if not parent_span:
