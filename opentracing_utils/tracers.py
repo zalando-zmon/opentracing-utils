@@ -3,10 +3,11 @@ import logging
 import opentracing
 
 OPENTRACING_INSTANA = 'instana'
+OPENTRACING_LIGHTSTEP = 'lightstep'
 OPENTRACING_BASIC = 'basic'
 
 
-def init_opentracing_tracer(tracer, service_name=None, log_level=logging.INFO, recorder=None, **kwargs):
+def init_opentracing_tracer(tracer, log_level=logging.INFO, recorder=None, **kwargs):
     if tracer == OPENTRACING_BASIC:
         from basictracer import BasicTracer  # noqa
 
@@ -15,8 +16,9 @@ def init_opentracing_tracer(tracer, service_name=None, log_level=logging.INFO, r
         import instana.options as InstanaOpts
         import instana.tracer  # noqa
 
-        instana.tracer.init(InstanaOpts.Options(service=service_name, log_level=log_level))
-
-    # Add more tracers
+        instana.tracer.init(InstanaOpts.Options(log_level=log_level, **kwargs))
+    elif tracer == OPENTRACING_LIGHTSTEP:
+        import lightstep
+        opentracing.tracer = lightstep.Tracer(**kwargs)
     else:
         opentracing.tracer = opentracing.Tracer()

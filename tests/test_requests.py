@@ -71,6 +71,7 @@ def test_trace_requests(monkeypatch, status_code):
     assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
 
 
 def test_trace_requests_session(monkeypatch):
@@ -103,6 +104,7 @@ def test_trace_requests_session(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
 
 
 def test_trace_requests_nested(monkeypatch):
@@ -144,6 +146,7 @@ def test_trace_requests_nested(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
 
 
 def test_trace_requests_no_propagators(monkeypatch):
@@ -180,6 +183,7 @@ def test_trace_requests_no_propagators(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
 
     logger.error.assert_called_once()
 
@@ -205,6 +209,7 @@ def test_trace_requests_no_parent_span(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
 
     assert response.status_code == resp.status_code
 

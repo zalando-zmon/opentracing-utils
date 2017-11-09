@@ -31,3 +31,16 @@ def test_get_new_span_with_extractor():
 
     assert DEFAULT_SPAN_ARG_NAME == span_arg_name
     assert span.parent_id == parent_span.context.span_id
+
+
+def test_get_new_span_with_failing_extractor():
+    def f():
+        pass
+
+    def extractor():
+        raise RuntimeError('Failed')
+
+    span_arg_name, span = get_new_span(f, span_extractor=extractor)
+
+    assert DEFAULT_SPAN_ARG_NAME == span_arg_name
+    assert span.parent_id is None
