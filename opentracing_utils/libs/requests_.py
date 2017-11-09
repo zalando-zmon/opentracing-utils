@@ -14,7 +14,7 @@ else:
 
 import opentracing
 from opentracing import Format
-from opentracing.ext import tags as opentracing_tags
+from opentracing.ext import tags as ot_tags
 
 from opentracing_utils.decorators import trace
 from opentracing_utils.span import extract_span
@@ -40,8 +40,9 @@ def requests_send_wrapper(self, request, **kwargs):
     if request_span:
         (request_span
             .set_operation_name(op_name)
-            .set_tag(opentracing_tags.HTTP_URL, sanitize_url(request.url))
-            .set_tag(opentracing_tags.HTTP_METHOD, request.method))
+            .set_tag(ot_tags.HTTP_URL, sanitize_url(request.url))
+            .set_tag(ot_tags.HTTP_METHOD, request.method)
+            .set_tag(ot_tags.SPAN_KIND, ot_tags.SPAN_KIND_RPC_CLIENT))
 
         # Inject our current span context to outbound request
         try:
@@ -56,7 +57,7 @@ def requests_send_wrapper(self, request, **kwargs):
             logger.error('Failed to inject span context in request!')
 
         resp = __requests_http_send(self, request, **kwargs)
-        request_span.set_tag(opentracing_tags.HTTP_STATUS_CODE, resp.status_code)
+        request_span.set_tag(ot_tags.HTTP_STATUS_CODE, resp.status_code)
 
         return resp
     else:
