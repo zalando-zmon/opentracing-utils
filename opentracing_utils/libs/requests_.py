@@ -59,6 +59,9 @@ def requests_send_wrapper(self, request, **kwargs):
         resp = __requests_http_send(self, request, **kwargs)
         request_span.set_tag(ot_tags.HTTP_STATUS_CODE, resp.status_code)
 
+        if not resp.ok:
+            request_span.set_tag('error', True)
+
         return resp
     else:
         logger.warn('Failed to extract span during initiating request!')
