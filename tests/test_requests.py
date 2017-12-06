@@ -36,7 +36,7 @@ def assert_send_reuqest_mock(resp):
     return send_request_mock
 
 
-@pytest.mark.parametrize('status_code', (200, 400, 500))
+@pytest.mark.parametrize('status_code', (200, 302, 400, 500))
 def test_trace_requests(monkeypatch, status_code):
     resp = Response()
     resp.status_code = status_code
@@ -72,6 +72,9 @@ def test_trace_requests(monkeypatch, status_code):
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+
+    if status_code >= 400:
+        assert recorder.spans[0].tags['error'] is True
 
 
 def test_trace_requests_session(monkeypatch):
