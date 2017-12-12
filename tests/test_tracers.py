@@ -64,6 +64,20 @@ def test_init_jaeger(monkeypatch):
 
     init_opentracing_tracer(OPENTRACING_JAEGER, service_name='test_jaeger')
 
-    config.assert_called_once_with(config={'service_name': 'test_jaeger'})
+    config.assert_called_once_with(config={}, service_name='test_jaeger')
+
+    assert opentracing.tracer == 'jaeger'
+
+
+@pytest.mark.skipif(six.PY3, reason='Jaeger does not support PY3')
+def test_init_jaeger_with_config(monkeypatch):
+    config = MagicMock()
+    config.return_value.initialize_tracer.return_value = 'jaeger'
+
+    monkeypatch.setattr('jaeger_client.Config', config)
+
+    init_opentracing_tracer(OPENTRACING_JAEGER, config={'logging': True}, service_name='test_jaeger')
+
+    config.assert_called_once_with(config={'logging': True}, service_name='test_jaeger')
 
     assert opentracing.tracer == 'jaeger'

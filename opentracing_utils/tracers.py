@@ -23,7 +23,11 @@ def init_opentracing_tracer(tracer, log_level=logging.INFO, recorder=None, **kwa
         opentracing.tracer = lightstep.Tracer(**kwargs)
     elif tracer == OPENTRACING_JAEGER:
         from jaeger_client import Config
-        config = Config(config=kwargs)
-        opentracing.tracer = config.initialize_tracer()
+
+        service_name = kwargs.pop('service_name', None)
+        config = kwargs.pop('config', {})
+
+        jaeger_config = Config(config=config, service_name=service_name)
+        opentracing.tracer = jaeger_config.initialize_tracer()
     else:
         opentracing.tracer = opentracing.Tracer()
