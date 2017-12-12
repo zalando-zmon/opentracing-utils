@@ -3,7 +3,7 @@ from pkg_resources import get_distribution
 from opentracing_utils.decorators import trace
 
 from opentracing_utils.tracers import init_opentracing_tracer
-from opentracing_utils.tracers import OPENTRACING_BASIC, OPENTRACING_INSTANA, OPENTRACING_LIGHTSTEP
+from opentracing_utils.tracers import OPENTRACING_BASIC, OPENTRACING_INSTANA, OPENTRACING_LIGHTSTEP, OPENTRACING_JAEGER
 
 from opentracing_utils.span import get_active_span, get_span_from_kwargs, extract_span
 
@@ -20,6 +20,7 @@ __all__ = (
     'init_opentracing_tracer',
     'OPENTRACING_BASIC',
     'OPENTRACING_INSTANA',
+    'OPENTRACING_JAEGER',
     'OPENTRACING_LIGHTSTEP',
     'trace',
     'trace_requests',

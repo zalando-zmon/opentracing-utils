@@ -16,11 +16,12 @@ TEST_REQUIREMENTS = (
     'requests',
     # Third party tracers
     'instana',
+    'jaeger-client',
     'lightstep',
 )
 
 MAIN_PACKAGE = 'opentracing_utils'
-VERSION = '0.6'
+VERSION = '0.7'
 DESCRIPTION = 'OpenTracing utilities'
 
 
