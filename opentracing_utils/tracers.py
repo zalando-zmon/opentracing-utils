@@ -4,6 +4,7 @@ import opentracing
 
 OPENTRACING_INSTANA = 'instana'
 OPENTRACING_LIGHTSTEP = 'lightstep'
+OPENTRACING_JAEGER = 'jaeger'
 OPENTRACING_BASIC = 'basic'
 
 
@@ -20,5 +21,9 @@ def init_opentracing_tracer(tracer, log_level=logging.INFO, recorder=None, **kwa
     elif tracer == OPENTRACING_LIGHTSTEP:
         import lightstep
         opentracing.tracer = lightstep.Tracer(**kwargs)
+    elif tracer == OPENTRACING_JAEGER:
+        from jaeger_client import Config
+        config = Config(config=kwargs)
+        opentracing.tracer = config.initialize_tracer()
     else:
         opentracing.tracer = opentracing.Tracer()
