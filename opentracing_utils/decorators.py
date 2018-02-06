@@ -20,7 +20,7 @@ def trace(component=None, operation_name=None, tags=None, pass_span=False, inspe
     :param pass_span: Whether to pass the span to the decorated function. Default is False.
     :type pass_span: bool
 
-    :param inspect_stack: Whather to inspect call stack frames to retrieve the parent span. Default is True.
+    :param inspect_stack: Whether to inspect call stack frames to retrieve the parent span. Default is True.
     :type inspect_stack: bool
 
     :param ignore_parent_span: Always start a fresh span for this decorated function. Default is False.

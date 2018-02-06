@@ -37,7 +37,10 @@ def adjust_span(span, operation_name, component, tags):
 
     if tags and type(tags) is dict:
         for k, v in tags.items():
-            span.set_tag(k, v)
+            try:
+                span.set_tag(k, v)
+            except Exception:
+                pass
 
     if component:
         span.set_tag(opentracing_tags.COMPONENT, component)

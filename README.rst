@@ -21,12 +21,12 @@ Features
 
 * No extrenal dependencies, only `opentracing-python <https://github.com/opentracing/opentracing-python>`_.
 * No threadlocals. Either pass spans safely or fallback to callstack frames inspection!
-* Context agnostic, so no external **context implementation** dependency (no tornado, Flask, Django etc ...).
+* Context agnostic, so no external **context implementation** dependency (no Tornado, Flask, Django etc ...).
 * Try to be less verbose - just add the ``@trace`` decorator.
 * Could be more verbose when needed, without complexity - just accept ``**kwargs`` and get the span passed to your traced functions via ``@trace(pass_span=True)``.
 * Support asyncio/async-await coroutines. (drop support for py2.7)
 * Support **gevent**.
-* Ability to add OpenTracing support to external libs/clients:
+* Ability to add OpenTracing support to external libs/frameworks/clients:
 
     * requests (via ``trace_requests()``)
     * TODO ...
@@ -51,6 +51,128 @@ or by cloning the repo
 
 Usage
 =====
+
+init_opentracing_tracer
+-----------------------
+
+The first step needed in OpenTracing instrumentation is to initialize a tracer. Each vendor defines how the tracer can be initialized. Currently the following tracers are supported:
+
+* `BasicTracer <https://github.com/opentracing/basictracer-python>`_
+* `Instana <https://github.com/instana/python-sensor>`_
+* `Jaeger <https://github.com/jaegertracing/jaeger-client-python/>`_
+* `LightStep <https://github.com/lightstep/lightstep-tracer-python>`_
+
+BasicTracer
+^^^^^^^^^^^
+
+This is the basic noop tracer. It could be initialized with a recorder (e.g. `Memory Recorder <https://github.com/opentracing/basictracer-python/blob/master/basictracer/recorder.py#L21>`_), which can be useful in debugging and playing around with OpenTracing concepts.
+
+.. code-block:: python
+
+    import opentracing
+    from opentracing_utils import OPENTRACING_BASIC, init_opentracing_tracer
+
+    # Initialize upon application start
+    init_opentracing_tracer(OPENTRACING_BASIC)
+
+    # It is possible to pass custom recorder
+    # init_opentracing_tracer(OPENTRACING_BASIC, recorder=custom_recorder)
+
+    # Now use the opentracing.tracer
+    root_span = opentracing.tracer.start_span(operation_name='root_span')
+
+Instana
+^^^^^^^
+
+Config Vars
+~~~~~~~~~~~
+
+The following config variables can be used in initialization if set as env variables
+
+OPENTRACING_INSTANA_SERVICE
+
+  The service name.
+
+.. code-block:: python
+
+    import opentracing
+    from opentracing_utils import OPENTRACING_INSTANA, init_opentracing_tracer
+
+    # Initialize upon application start
+    init_opentracing_tracer(OPENTRACING_INSTANA)
+
+    # It is possible to pass args
+    # init_opentracing_tracer(OPENTRACING_INSTANA, service='python-server')
+
+    # Now use the opentracing.tracer
+    root_span = opentracing.tracer.start_span(operation_name='root_span')
+
+LightStep
+^^^^^^^^^
+
+Config Vars
+~~~~~~~~~~~
+
+The following config variables can be used in initialization if set as env variables
+
+OPENTRACING_LIGHTSTEP_COMPONENT_NAME
+  The component name.
+
+OPENTRACING_LIGHTSTEP_ACCESS_TOKEN
+  The LightStep collector access token.
+
+OPENTRACING_LIGHTSTEP_COLLECTOR_HOST
+  The LightStep collector host. Default: ``collector.lightstep.com``.
+
+OPENTRACING_LIGHTSTEP_COLLECTOR_PORT
+  The LightStep collector port (``int``). Default: ``443``.
+
+OPENTRACING_LIGHTSTEP_VERBOSITY
+  The verbosity of the tracer (``int``). Default: ``0``.
+
+.. code-block:: python
+
+    import opentracing
+    from opentracing_utils import OPENTRACING_LIGHTSTEP, init_opentracing_tracer
+
+    # Initialize upon application start
+    init_opentracing_tracer(OPENTRACING_LIGHTSTEP)
+
+    # It is possible to pass args
+    # init_opentracing_tracer(OPENTRACING_LIGHTSTEP, component_name='python-server', access_token='123', collector_host='production-collector.com')
+
+    # Now use the opentracing.tracer
+    root_span = opentracing.tracer.start_span(operation_name='root_span')
+
+Jaeger
+^^^^^^
+
+Config Vars
+~~~~~~~~~~~
+
+The following config variables can be used in initialization if set as env variables
+
+OPENTRACING_JAEGER_SERVICE_NAME
+  The service name.
+
+.. note::
+
+    Jaeger configuration should be passed by the instrumentated code. Default is ``{}``.
+
+.. code-block:: python
+
+    import opentracing
+    from opentracing_utils import OPENTRACING_JAEGER, init_opentracing_tracer
+
+    # Initialize upon application start
+    init_opentracing_tracer(OPENTRACING_JAEGER)
+
+    # It is possible to pass args
+    # init_opentracing_tracer(OPENTRACING_JAEGER, service_name='python-server', config=custom_config_with_sampling)
+
+    # Now use the opentracing.tracer
+    root_span = opentracing.tracer.start_span(operation_name='root_span')
+
 
 @trace decorator
 ----------------
@@ -123,7 +245,7 @@ If you plan to break nested traces, then it is recommended to pass the span to t
 
 
 Multiple traces
-^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 If you plan to use multiple traces then it is better to always pass the span as it is safer/guaranteed.
 
@@ -151,7 +273,7 @@ External libraries and clients
 Requests
 ^^^^^^^^
 
-For tracing ``requests`` client library
+For tracing `requests <https://github.com/requests/requests>`_ client library for all outgoing requests.
 
 .. code-block:: python
 
@@ -159,73 +281,17 @@ For tracing ``requests`` client library
     from opentracing_utils import trace_requests
     trace_requests()  # noqa
 
+    # In case you want to include default span tags to be sent with every outgoing request
+    # trace_requests(default_tags={'account_id': '123'})
+
     import requests
 
     def main():
 
         span = opentracing.tracer.start_span(operation_name='main')
         with span:
-            # Following call will be traced, and parent span will be inherited and propagated via HTTP headers
+            # Following call will be traced, and parent span will be inherited and propagated via HTTP headers.
             requests.get('https://example.org')
-
-
-@trace_async decorator
-----------------------
-
-NOT SUPPORTED AT THE MOMENT
-
-.. code-block:: python
-
-    import asyncio
-
-    import opentracing
-    from opentracing_utils import trace, trace_async, extract_span
-
-    loop = asyncio.get_event_loop()
-
-    # decorate all your functions that require tracing
-
-    # Normal traced function
-    @trace()
-    def trace_me():
-        pass
-
-    # Async function expecting the span to be passed down in ``kwargs``
-    @trace_async(pass_span=True)
-    async def send_email(user, **kwargs):
-        current_span = extract_span(**kwargs)
-
-        current_span.set_operation_name('send.email.{}'.format(user.id))
-        current_span.set_tag('user.id', user.id)
-
-        # then send email - will not be correlated to ``current_span``
-        await send_email_payload(user, 'new email')
-
-
-    # Async function
-    @trace_async()
-    async def just_wait():
-        await asyncio.sleep(1)
-
-
-    async def start_fresh():
-
-        user = {'id': 1}
-
-        async_span = opentracing.tracer.start_span(operation_name='start.fresh')
-        with async_span:
-
-            # traced async op - IMPORTANT: ``async_span`` must be passed to the async function as kwarg
-            a1 = asyncio.ensure_future(send_email(user, span=async_span))
-
-            # normal, traced blocking function
-            trace_me()
-
-            # Always pass the ``async_span`` as kwarg even if the ``just_wait`` function does not accept any ``kwargs``
-            a2 = asyncio.ensure_future(just_wait(span=async_span))
-
-            await asyncio.wait_for(a1, 20)
-            await asyncio.wait_for(a2, 2)
 
 
 License

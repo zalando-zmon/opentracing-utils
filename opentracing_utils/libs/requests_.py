@@ -19,18 +19,20 @@ from opentracing.ext import tags as ot_tags
 from opentracing_utils.decorators import trace
 from opentracing_utils.span import extract_span
 
-
 OPERATION_NAME_PREFIX = 'requests.send'
 
 logger = logging.getLogger(__name__)
 
 
-def trace_requests():
-    """Patch requests library with Opentracing"""
-    requests.adapters.HTTPAdapter.send = requests_send_wrapper
+def trace_requests(default_tags=None):
+    """Patch requests library with OpenTracing support.
+
+    :param default_tags: Default span tags to included with every outgoing request.
+    :type default_tags: dict
+    """
+    requests.adapters.HTTPAdapter.send = trace(pass_span=True, tags=default_tags)(requests_send_wrapper)
 
 
-@trace(pass_span=True)
 def requests_send_wrapper(self, request, **kwargs):
     op_name = '{}.{}'.format(OPERATION_NAME_PREFIX, request.method)
 
