@@ -7,7 +7,7 @@ from opentracing_utils.tracers import OPENTRACING_BASIC, OPENTRACING_INSTANA, OP
 
 from opentracing_utils.span import get_active_span, get_span_from_kwargs, extract_span
 
-from opentracing_utils.libs.requests_ import trace_requests
+from opentracing_utils.libs._requests import trace_requests
 
 
 __version__ = get_distribution('opentracing-utils').version
@@ -18,10 +18,11 @@ __all__ = (
     'get_active_span',
     'get_span_from_kwargs',
     'init_opentracing_tracer',
+    'trace',
+    'trace_requests',
+
     'OPENTRACING_BASIC',
     'OPENTRACING_INSTANA',
     'OPENTRACING_JAEGER',
     'OPENTRACING_LIGHTSTEP',
-    'trace',
-    'trace_requests',
 )

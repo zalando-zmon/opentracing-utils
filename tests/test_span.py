@@ -15,7 +15,7 @@ def test_get_new_span():
     def f():
         pass
 
-    span_arg_name, span = get_new_span(f)
+    span_arg_name, span = get_new_span(f, [], {})
 
     assert DEFAULT_SPAN_ARG_NAME == span_arg_name
     assert isinstance(span, opentracing.Span)
@@ -25,16 +25,19 @@ def test_get_new_span_with_extractor():
     opentracing.tracer = BasicTracer()
     parent_span = opentracing.tracer.start_span()
 
-    def f():
+    extractor = MagicMock()
+    extractor.return_value = parent_span
+
+    ctx = '123'
+
+    def f(ctx, extras=True):
         pass
 
-    def extractor():
-        return parent_span
-
-    span_arg_name, span = get_new_span(f, span_extractor=extractor)
+    span_arg_name, span = get_new_span(f, [ctx], {'extras': True}, span_extractor=extractor, inspect_stack=False)
 
     assert DEFAULT_SPAN_ARG_NAME == span_arg_name
     assert span.parent_id == parent_span.context.span_id
+    extractor.assert_called_with(ctx, extras=True)
 
 
 def test_get_new_span_with_failing_extractor():
@@ -44,7 +47,7 @@ def test_get_new_span_with_failing_extractor():
     def extractor():
         raise RuntimeError('Failed')
 
-    span_arg_name, span = get_new_span(f, span_extractor=extractor)
+    span_arg_name, span = get_new_span(f, [], {}, span_extractor=extractor)
 
     assert DEFAULT_SPAN_ARG_NAME == span_arg_name
     assert span.parent_id is None

@@ -201,6 +201,11 @@ OPENTRACING_JAEGER_SERVICE_NAME
         # trace_me will have ``current_span`` as its parent.
         trace_me()
 
+    # Traced function using ``follows_from`` instead of ``child_of`` reference.
+    @trace(use_follows_from=True)
+    def trace_me_later():
+        pass
+
 
     # Start a fresh trace - any parent spans will be ignored
     @trace(operation_name='epoch', ignore_parent_span=True)
