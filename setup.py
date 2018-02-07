@@ -14,6 +14,7 @@ TEST_REQUIREMENTS = (
     'pytest',
     'pytest_cov',
     'requests',
+    'flask',
     # Third party tracers
     'instana',
     'jaeger-client',
