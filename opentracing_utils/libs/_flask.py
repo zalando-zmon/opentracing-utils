@@ -5,7 +5,7 @@ from opentracing.ext import tags as ot_tags
 
 try:
     from flask import request
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     pass
 
 
