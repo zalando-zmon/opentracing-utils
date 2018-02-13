@@ -6,7 +6,7 @@ from opentracing.ext import tags as opentracing_tags
 from basictracer import BasicTracer
 
 
-from opentracing_utils.span import get_new_span, adjust_span
+from opentracing_utils.span import get_new_span, adjust_span, extract_span_from_kwargs
 from opentracing_utils.span import DEFAULT_SPAN_ARG_NAME
 
 
@@ -61,3 +61,11 @@ def test_adjust_span(monkeypatch):
 
     span.set_tag.assert_called_with(opentracing_tags.COMPONENT, 'component')
     span.set_operation_name.assert_called_with('op_name')
+
+
+def test_extract_span_from_kwargs(monkeypatch):
+    span = opentracing.tracer.start_span(operation_name='test_op')
+
+    extracted = extract_span_from_kwargs(span=span, x=1, y='some-value')
+
+    assert extracted == span

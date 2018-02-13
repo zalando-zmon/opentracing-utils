@@ -9,6 +9,9 @@ OPENTRACING_JAEGER = 'jaeger'
 OPENTRACING_BASIC = 'basic'
 
 
+logger = logging.getLogger(__name__)
+
+
 def init_opentracing_tracer(tracer, **kwargs):
     if tracer == OPENTRACING_BASIC:
         from basictracer import BasicTracer  # noqa
@@ -46,6 +49,9 @@ def init_opentracing_tracer(tracer, **kwargs):
         verbosity = kwargs.pop(
             'verbosity',
             int(os.environ.get('OPENTRACING_LIGHTSTEP_VERBOSITY', 0)))
+
+        if not access_token:
+            logger.warn('Initializing LighStep tracer with no access_token!')
 
         opentracing.tracer = lightstep.Tracer(
             component_name=component_name, access_token=access_token, collector_host=collector_host,

@@ -107,6 +107,36 @@ OPENTRACING_INSTANA_SERVICE
     # Now use the opentracing.tracer
     root_span = opentracing.tracer.start_span(operation_name='root_span')
 
+Jaeger
+^^^^^^
+
+Config Vars
+~~~~~~~~~~~
+
+The following config variables can be used in initialization if set as env variables
+
+OPENTRACING_JAEGER_SERVICE_NAME
+  The service name.
+
+.. note::
+
+    Jaeger configuration should be passed by the instrumentated code. Default is ``{}``.
+
+.. code-block:: python
+
+    import opentracing
+    from opentracing_utils import OPENTRACING_JAEGER, init_opentracing_tracer
+
+    # Initialize upon application start
+    init_opentracing_tracer(OPENTRACING_JAEGER)
+
+    # It is possible to pass args
+    # init_opentracing_tracer(OPENTRACING_JAEGER, service_name='python-server', config=custom_config_with_sampling)
+
+    # Now use the opentracing.tracer
+    root_span = opentracing.tracer.start_span(operation_name='root_span')
+
+
 LightStep
 ^^^^^^^^^
 
@@ -140,35 +170,6 @@ OPENTRACING_LIGHTSTEP_VERBOSITY
 
     # It is possible to pass args
     # init_opentracing_tracer(OPENTRACING_LIGHTSTEP, component_name='python-server', access_token='123', collector_host='production-collector.com')
-
-    # Now use the opentracing.tracer
-    root_span = opentracing.tracer.start_span(operation_name='root_span')
-
-Jaeger
-^^^^^^
-
-Config Vars
-~~~~~~~~~~~
-
-The following config variables can be used in initialization if set as env variables
-
-OPENTRACING_JAEGER_SERVICE_NAME
-  The service name.
-
-.. note::
-
-    Jaeger configuration should be passed by the instrumentated code. Default is ``{}``.
-
-.. code-block:: python
-
-    import opentracing
-    from opentracing_utils import OPENTRACING_JAEGER, init_opentracing_tracer
-
-    # Initialize upon application start
-    init_opentracing_tracer(OPENTRACING_JAEGER)
-
-    # It is possible to pass args
-    # init_opentracing_tracer(OPENTRACING_JAEGER, service_name='python-server', config=custom_config_with_sampling)
 
     # Now use the opentracing.tracer
     root_span = opentracing.tracer.start_span(operation_name='root_span')
