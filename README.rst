@@ -25,7 +25,7 @@ Features
 ``opentracing-utils`` should provide and aims at the following:
 
 * No extrenal dependencies, only `opentracing-python <https://github.com/opentracing/opentracing-python>`_.
-* No threadlocals. Either pass spans safely or fallback to callstack frames inspection!
+* No threadlocals. Either pass spans explicitly or fallback to callstack frames inspection!
 * Context agnostic, so no external **context implementation** dependency (no Tornado, Flask, Django etc ...).
 * Try to be less verbose - just add the ``@trace`` decorator.
 * Could be more verbose when needed, without complexity - just accept ``**kwargs`` and get the span passed to your traced functions via ``@trace(pass_span=True)``.
@@ -95,7 +95,6 @@ Config Vars
 The following config variables can be used in initialization if set as env variables
 
 OPENTRACING_INSTANA_SERVICE
-
   The service name.
 
 .. code-block:: python
@@ -126,6 +125,7 @@ OPENTRACING_JAEGER_SERVICE_NAME
 .. note::
 
     Jaeger configuration should be passed by the instrumentated code. Default is ``{}``.
+
 
 .. code-block:: python
 
@@ -317,8 +317,8 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
     from opentracing_utils import trace_requests
     trace_requests()  # noqa
 
-    # In case you want to include default span tags to be sent with every outgoing request
-    # trace_requests(default_tags={'account_id': '123'})
+    # In case you want to include default span tags to be sent with every outgoing request.
+    # trace_requests(default_tags={'account_id': '123'}, set_error_tag=False)
 
     import requests
 
@@ -326,7 +326,7 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
 
         span = opentracing.tracer.start_span(operation_name='main')
         with span:
-            # Following call will be traced, and parent span will be inherited and propagated via HTTP headers.
+            # Following call will be traced as a ``child span`` and propagated via HTTP headers.
             requests.get('https://example.org')
 
 License
