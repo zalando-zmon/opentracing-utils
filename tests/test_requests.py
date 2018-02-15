@@ -120,6 +120,38 @@ def test_trace_requests_with_tags(monkeypatch):
     assert recorder.spans[0].tags['tag1'] == 'value1'
 
 
+def test_trace_requests_no_error_tag(monkeypatch):
+    resp = Response()
+    resp.status_code = 400
+    resp.url = URL
+
+    trace_requests(set_error_tag=False)
+
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+
+    recorder = Recorder()
+    t = BasicTracer(recorder=recorder)
+    t.register_required_propagators()
+    opentracing.tracer = t
+
+    top_span = opentracing.tracer.start_span(operation_name='top_span')
+
+    with top_span:
+        response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+
+    assert len(recorder.spans) == 2
+
+    assert recorder.spans[0].context.trace_id == top_span.context.trace_id
+    assert recorder.spans[0].parent_id == recorder.spans[-1].context.span_id
+
+    assert response.status_code == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_URL] == URL
+    assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert 'error' not in recorder.spans[0].tags
+
+
 def test_trace_requests_session(monkeypatch):
     resp = Response()
     resp.status_code = 200
@@ -272,7 +304,7 @@ def test_trace_requests_extract_span_fail(monkeypatch):
     extract_span_mock.return_value = None, None
 
     monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', send_request_mock)
-    monkeypatch.setattr('opentracing_utils.libs._requests.extract_span', extract_span_mock)
+    monkeypatch.setattr('opentracing_utils.libs._requests.get_span_from_kwargs', extract_span_mock)
 
     logger = MagicMock()
     monkeypatch.setattr('opentracing_utils.libs._requests.logger', logger)

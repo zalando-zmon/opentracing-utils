@@ -7,10 +7,15 @@ OPENTRACING PYTHON UTILS
 
 .. image:: https://api.travis-ci.org/zalando-zmon/opentracing-utils.svg?branch=master
   :target: https://travis-ci.org/zalando-zmon/opentracing-utils
+  :alt: Build status
 
 .. image:: https://codecov.io/gh/zalando-zmon/opentracing-utils/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/zalando-zmon/opentracing-utils
+  :alt: Code coverage
 
+.. image:: https://img.shields.io/badge/OpenTracing-enabled-blue.svg
+   :target: http://opentracing.io
+   :alt: OpenTracing enabled
 
 Convenient utilities for adding `OpenTracing <http://opentracing.io>`_ support in your python projects.
 
@@ -29,13 +34,13 @@ Features
 * Ability to add OpenTracing support to external libs/frameworks/clients:
 
     * requests (via ``trace_requests()``)
+    * flask (via ``trace_flask()``)
     * TODO ...
-
 
 Install
 =======
 
-Using pip
+Using pip (not released yet to PyPi)
 
 .. code-block:: bash
 

@@ -63,13 +63,6 @@ def get_span_from_kwargs(**kwargs):
     return None, None
 
 
-def extract_span_from_kwargs(**kwargs):
-    """Return current span from kwargs"""
-    _, span = get_span_from_kwargs(**kwargs)
-
-    return span
-
-
 def inspect_span_from_stack(depth=100):
     cframe = inspect.currentframe()
     frame = cframe.f_back
@@ -98,6 +91,8 @@ def get_parent_span(inspect_stack=True, **kwargs):
     return span_arg_name, parent_span
 
 
-# Aliases
-get_active_span = get_parent_span
-extract_span = get_parent_span
+def extract_span_from_kwargs(**kwargs):
+    """Return current span from kwargs"""
+    _, span = get_span_from_kwargs(**kwargs)
+
+    return span

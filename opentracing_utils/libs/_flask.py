@@ -60,14 +60,15 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
         if span is None:
             span = opentracing.tracer.start_span(operation_name)
 
-        for attr in request_attr:
-            if hasattr(request, attr):
-                try:
-                    tag_value = str(getattr(request, attr))
-                    if tag_value:
-                        span.set_tag(attr, tag_value)
-                except Exception:
-                    pass
+        if request_attr:
+            for attr in request_attr:
+                if hasattr(request, attr):
+                    try:
+                        tag_value = str(getattr(request, attr))
+                        if tag_value:
+                            span.set_tag(attr, tag_value)
+                    except Exception:
+                        pass
 
         if type(default_tags) is dict:
             for k, v in default_tags.items():
@@ -85,12 +86,13 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
     def trace_response(response):
         try:
             if hasattr(request, 'current_span'):
-                for attr in response_attr:
-                    if hasattr(response, attr):
-                        request.current_span.set_tag(attr, str(getattr(response, attr)))
+                if response_attr:
+                    for attr in response_attr:
+                        if hasattr(response, attr):
+                            request.current_span.set_tag(attr, str(getattr(response, attr)))
 
-                    if response.status_code >= min_error_code:
-                        request.current_span.set_tag('error', True)
+                if response.status_code >= min_error_code:
+                    request.current_span.set_tag('error', True)
 
                 request.current_span.finish()
         finally:

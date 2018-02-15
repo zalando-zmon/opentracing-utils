@@ -17,14 +17,14 @@ from opentracing import Format
 from opentracing.ext import tags as ot_tags
 
 from opentracing_utils.decorators import trace
-from opentracing_utils.span import extract_span
+from opentracing_utils.span import get_span_from_kwargs
 
 OPERATION_NAME_PREFIX = 'requests.send'
 
 logger = logging.getLogger(__name__)
 
 
-def trace_requests(default_tags=None):
+def trace_requests(default_tags=None, set_error_tag=True):
     """Patch requests library with OpenTracing support.
 
     :param default_tags: Default span tags to included with every outgoing request.
@@ -34,7 +34,7 @@ def trace_requests(default_tags=None):
     def requests_send_wrapper(self, request, **kwargs):
         op_name = '{}.{}'.format(OPERATION_NAME_PREFIX, request.method)
 
-        k, request_span = extract_span(inspect_stack=False, **kwargs)
+        k, request_span = get_span_from_kwargs(inspect_stack=False, **kwargs)
         kwargs.pop(k, None)
 
         if request_span:
@@ -49,17 +49,13 @@ def trace_requests(default_tags=None):
                 carrier = {}
                 opentracing.tracer.inject(request_span.context, Format.HTTP_HEADERS, carrier)
                 request.headers.update(carrier)
-
-                for k, v in carrier.items():
-                    request_span.set_tag(k, v)
-
             except opentracing.UnsupportedFormatException:
                 logger.error('Failed to inject span context in request!')
 
             resp = __requests_http_send(self, request, **kwargs)
             request_span.set_tag(ot_tags.HTTP_STATUS_CODE, resp.status_code)
 
-            if not resp.ok:
+            if set_error_tag and not resp.ok:
                 request_span.set_tag('error', True)
 
             return resp
