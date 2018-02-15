@@ -33,8 +33,8 @@ Features
 * Support **gevent**.
 * Ability to add OpenTracing support to external libs/frameworks/clients:
 
-    * requests (via ``trace_requests()``)
-    * flask (via ``trace_flask()``)
+    * Flask (via ``trace_flask()``)
+    * Requests (via ``trace_requests()``)
     * TODO ...
 
 Install
@@ -281,6 +281,31 @@ If you plan to use multiple traces then it is better to always pass the span as 
 External libraries and clients
 ------------------------------
 
+Flask
+^^^^^
+
+For tracing `Flask <http://flask.pocoo.org>`_ applications. This utility function adds a middleware that handles all incoming requests to the Flask application.
+
+.. code-block:: python
+
+    # trace_requests should be called as early as possible, before importing requests
+    from opentracing_utils import trace_flask, extract_span_from_flask_request
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    trace_flask(app)
+
+    # You can add default_tags or optionally treat 4xx responses as not an error (i.e no error tag in span)
+    # trace_flask(app, default_tags={'always-there': True}, error_on_4xx=False)
+
+    # Extract current span from request context
+    def internal_function():
+        current_span = extract_span_from_flask_request()
+
+        current_span.set_tag('internal', True)
+
+
 Requests
 ^^^^^^^^
 
@@ -303,7 +328,6 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
         with span:
             # Following call will be traced, and parent span will be inherited and propagated via HTTP headers.
             requests.get('https://example.org')
-
 
 License
 =======
