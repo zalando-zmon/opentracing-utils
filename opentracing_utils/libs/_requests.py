@@ -19,6 +19,7 @@ from opentracing.ext import tags as ot_tags
 from opentracing_utils.decorators import trace
 from opentracing_utils.span import get_span_from_kwargs
 
+
 OPERATION_NAME_PREFIX = 'requests.send'
 
 logger = logging.getLogger(__name__)

@@ -4,8 +4,10 @@
 """
 Setup file for opentracing-utils.
 """
+import sys
 from setuptools import setup, find_packages
 
+PY3 = sys.version_info.major == 3
 
 TEST_REQUIREMENTS = (
     'basictracer',
@@ -17,9 +19,12 @@ TEST_REQUIREMENTS = (
     'flask',
     # Third party tracers
     'instana',
-    'jaeger-client',
     'lightstep',
 )
+
+# Until Jaeger supports Python 3
+if not PY3:
+    TEST_REQUIREMENTS += ('jaeger-client',)
 
 MAIN_PACKAGE = 'opentracing_utils'
 VERSION = '0.8'
