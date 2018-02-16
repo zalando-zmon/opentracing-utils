@@ -288,7 +288,6 @@ For tracing `Flask <http://flask.pocoo.org>`_ applications. This utility functio
 
 .. code-block:: python
 
-    # trace_requests should be called as early as possible, before importing requests
     from opentracing_utils import trace_flask, extract_span_from_flask_request
     from flask import Flask
 

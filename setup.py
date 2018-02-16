@@ -9,26 +9,13 @@ from setuptools import setup, find_packages
 
 PY3 = sys.version_info.major == 3
 
-TEST_REQUIREMENTS = (
-    'basictracer',
-    'mock==2.0.0',
-    'opentracing',
-    'pytest',
-    'pytest_cov',
-    'requests',
-    'flask',
-    # Third party tracers
-    'instana',
-    'lightstep',
-)
-
-# Until Jaeger supports Python 3
-if not PY3:
-    TEST_REQUIREMENTS += ('jaeger-client',)
-
 MAIN_PACKAGE = 'opentracing_utils'
 VERSION = '0.8'
 DESCRIPTION = 'OpenTracing utilities'
+
+
+def load_req(req):
+    return [r.strip() for r in open(req).read().splitlines() if r.strip() and not r.strip().startswith('#')]
 
 
 setup(
@@ -47,7 +34,7 @@ setup(
         'pytest-runner',
     ],
     test_suite='tests',
-    tests_require=TEST_REQUIREMENTS,
+    tests_require=load_req('test_requirements.txt'),
     include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',
