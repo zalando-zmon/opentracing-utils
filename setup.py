@@ -15,7 +15,13 @@ DESCRIPTION = 'OpenTracing utilities'
 
 
 def load_req(req):
-    return [r.strip() for r in open(req).read().splitlines() if r.strip() and not r.strip().startswith('#')]
+    try:
+        return [r.strip() for r in open(req).read().splitlines() if r.strip() and not r.strip().startswith('#')]
+    except Exception:
+        return []
+
+
+TEST_REQUIREMENTS = load_req('test_requirements.txt')
 
 
 setup(
@@ -34,7 +40,7 @@ setup(
         'pytest-runner',
     ],
     test_suite='tests',
-    tests_require=load_req('test_requirements.txt'),
+    tests_require=TEST_REQUIREMENTS,
     include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',
