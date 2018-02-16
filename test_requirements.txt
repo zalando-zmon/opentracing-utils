@@ -1,0 +1,11 @@
+basictracer
+mock==2.0.0
+opentracing
+pytest
+pytest_cov
+requests
+flask
+# Third party tracers
+jaeger-client
+instana
+lightstep

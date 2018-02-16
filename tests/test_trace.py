@@ -42,6 +42,24 @@ def test_trace_single():
         assert span.parent_id == test_span.context.span_id
 
 
+def test_trace_follows_from():
+    @trace(use_follows_from=True)
+    def f1():
+        pass
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    test_span = opentracing.tracer.start_span(operation_name='test_trace')
+
+    with test_span:
+        f1()
+
+    assert len(recorder.spans) == 2
+    assert recorder.spans[0].context.trace_id == test_span.context.trace_id
+    assert recorder.spans[0].parent_id == test_span.context.span_id
+
+
 def test_trace_method():
 
     class C:
@@ -308,3 +326,32 @@ def test_trace_separate_functions():
         assert recorder.spans[1].parent_id == test_span.context.span_id
 
     actual()
+
+
+def test_trace_loop():
+    @trace()
+    def f1():
+        pass
+
+    def f0():
+        f1()
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    for i in range(3):
+        test_span = opentracing.tracer.start_span(operation_name='test_trace')
+        test_span.set_tag('loop', i)
+
+        with test_span:
+            f0()
+
+    assert len(recorder.spans) == 6
+
+    root_spans = recorder.spans[1::2]
+
+    for idx, span in enumerate(recorder.spans[::2]):
+        parent_span = root_spans[idx]
+        assert parent_span.tags == {'loop': idx}
+        assert span.context.trace_id == parent_span.context.trace_id
+        assert span.parent_id == parent_span.context.span_id

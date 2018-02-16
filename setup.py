@@ -4,25 +4,24 @@
 """
 Setup file for opentracing-utils.
 """
+import sys
 from setuptools import setup, find_packages
 
-
-TEST_REQUIREMENTS = (
-    'basictracer',
-    'mock==2.0.0',
-    'opentracing',
-    'pytest',
-    'pytest_cov',
-    'requests',
-    # Third party tracers
-    'instana',
-    'jaeger-client',
-    'lightstep',
-)
+PY3 = sys.version_info.major == 3
 
 MAIN_PACKAGE = 'opentracing_utils'
-VERSION = '0.7'
+VERSION = '0.8'
 DESCRIPTION = 'OpenTracing utilities'
+
+
+def load_req(req):
+    try:
+        return [r.strip() for r in open(req).read().splitlines() if r.strip() and not r.strip().startswith('#')]
+    except Exception:
+        return []
+
+
+TEST_REQUIREMENTS = load_req('test_requirements.txt')
 
 
 setup(

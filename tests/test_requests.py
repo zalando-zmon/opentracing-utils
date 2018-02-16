@@ -15,7 +15,7 @@ from basictracer import BasicTracer
 
 from .conftest import Recorder
 from opentracing_utils import trace
-from opentracing_utils.libs.requests_ import sanitize_url
+from opentracing_utils.libs._requests import sanitize_url
 
 
 URL = 'http://example.com/'
@@ -42,7 +42,7 @@ def test_trace_requests(monkeypatch, status_code):
     resp.status_code = status_code
     resp.url = URL
 
-    monkeypatch.setattr('opentracing_utils.libs.requests_.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
 
     @trace()
     def f1():
@@ -77,12 +77,87 @@ def test_trace_requests(monkeypatch, status_code):
         assert recorder.spans[0].tags['error'] is True
 
 
+def test_trace_requests_with_tags(monkeypatch):
+    resp = Response()
+    resp.status_code = 200
+    resp.url = URL
+
+    trace_requests(default_tags={'tag1': 'value1'})
+
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+
+    @trace()
+    def f1():
+        pass
+
+    recorder = Recorder()
+    t = BasicTracer(recorder=recorder)
+    t.register_required_propagators()
+    opentracing.tracer = t
+
+    top_span = opentracing.tracer.start_span(operation_name='top_span')
+
+    with top_span:
+        response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+
+        f1()
+
+    assert len(recorder.spans) == 3
+
+    assert recorder.spans[0].context.trace_id == top_span.context.trace_id
+    assert recorder.spans[0].parent_id == recorder.spans[-1].context.span_id
+
+    assert recorder.spans[-1].operation_name == 'top_span'
+    # ``requests`` default tags do not leak to other unrelated spans!
+    assert recorder.spans[1].tags == {}
+    assert recorder.spans[1].operation_name == 'f1'
+
+    assert response.status_code == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_URL] == URL
+    assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags['tag1'] == 'value1'
+
+
+def test_trace_requests_no_error_tag(monkeypatch):
+    resp = Response()
+    resp.status_code = 400
+    resp.url = URL
+
+    trace_requests(set_error_tag=False)
+
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+
+    recorder = Recorder()
+    t = BasicTracer(recorder=recorder)
+    t.register_required_propagators()
+    opentracing.tracer = t
+
+    top_span = opentracing.tracer.start_span(operation_name='top_span')
+
+    with top_span:
+        response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+
+    assert len(recorder.spans) == 2
+
+    assert recorder.spans[0].context.trace_id == top_span.context.trace_id
+    assert recorder.spans[0].parent_id == recorder.spans[-1].context.span_id
+
+    assert response.status_code == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_URL] == URL
+    assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert 'error' not in recorder.spans[0].tags
+
+
 def test_trace_requests_session(monkeypatch):
     resp = Response()
     resp.status_code = 200
     resp.url = URL
 
-    monkeypatch.setattr('opentracing_utils.libs.requests_.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
 
     recorder = Recorder()
     t = BasicTracer(recorder=recorder)
@@ -115,7 +190,7 @@ def test_trace_requests_nested(monkeypatch):
     resp.status_code = 200
     resp.url = URL
 
-    monkeypatch.setattr('opentracing_utils.libs.requests_.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
 
     recorder = Recorder()
     t = BasicTracer(recorder=recorder)
@@ -162,8 +237,8 @@ def test_trace_requests_no_propagators(monkeypatch):
 
     logger = MagicMock()
 
-    monkeypatch.setattr('opentracing_utils.libs.requests_.__requests_http_send', send_request_mock)
-    monkeypatch.setattr('opentracing_utils.libs.requests_.logger', logger)
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', send_request_mock)
+    monkeypatch.setattr('opentracing_utils.libs._requests.logger', logger)
 
     recorder = Recorder()
     opentracing.tracer = BasicTracer(recorder=recorder)
@@ -196,7 +271,7 @@ def test_trace_requests_no_parent_span(monkeypatch):
     resp.status_code = 200
     resp.url = URL
 
-    monkeypatch.setattr('opentracing_utils.libs.requests_.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
 
     recorder = Recorder()
     t = BasicTracer(recorder=recorder)
@@ -228,11 +303,11 @@ def test_trace_requests_extract_span_fail(monkeypatch):
     extract_span_mock = MagicMock()
     extract_span_mock.return_value = None, None
 
-    monkeypatch.setattr('opentracing_utils.libs.requests_.__requests_http_send', send_request_mock)
-    monkeypatch.setattr('opentracing_utils.libs.requests_.extract_span', extract_span_mock)
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', send_request_mock)
+    monkeypatch.setattr('opentracing_utils.libs._requests.get_span_from_kwargs', extract_span_mock)
 
     logger = MagicMock()
-    monkeypatch.setattr('opentracing_utils.libs.requests_.logger', logger)
+    monkeypatch.setattr('opentracing_utils.libs._requests.logger', logger)
 
     recorder = Recorder()
     t = BasicTracer(recorder=recorder)
