@@ -72,6 +72,7 @@ def test_trace_requests(monkeypatch, status_code):
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
 
     if status_code >= 400:
         assert recorder.spans[0].tags['error'] is True
@@ -117,6 +118,7 @@ def test_trace_requests_with_tags(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['tag1'] == 'value1'
 
 
@@ -149,6 +151,7 @@ def test_trace_requests_no_error_tag(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert 'error' not in recorder.spans[0].tags
 
 
@@ -183,6 +186,7 @@ def test_trace_requests_session(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
 
 
 def test_trace_requests_nested(monkeypatch):
@@ -225,6 +229,7 @@ def test_trace_requests_nested(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
 
 
 def test_trace_requests_no_propagators(monkeypatch):
@@ -262,6 +267,7 @@ def test_trace_requests_no_propagators(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
 
     logger.error.assert_called_once()
 
@@ -288,6 +294,7 @@ def test_trace_requests_no_parent_span(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_URL] == URL
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
 
     assert response.status_code == resp.status_code
 
@@ -323,21 +330,24 @@ def test_trace_requests_extract_span_fail(monkeypatch):
     logger.warn.assert_called_once()
 
 
-@pytest.mark.parametrize('url,res', (
-    ('https://example.org', 'https://example.org'),
-    ('https://www.example.org', 'https://www.example.org'),
-    ('http://example.org/p/1', 'http://example.org/p/1'),
-    ('http://www.example.org/p/1', 'http://www.example.org/p/1'),
-    ('http://www.example.org/p/1?q=abc&v=123&x=some%20thing', 'http://www.example.org/p/1?q=abc&v=123&x=some%20thing'),
-    ('http://www.example.org/p/1?q=abc#f1', 'http://www.example.org/p/1?q=abc#f1'),
-    ('https://user:pass@www.example.org/p/1?q=abc#f1', 'https://www.example.org/p/1?q=abc#f1'),
-    ('https://user:@www.example.org/p/1?q=abc#f1', 'https://www.example.org/p/1?q=abc#f1'),
-    ('https://user@www.example.org/p/1?q=abc#f1', 'https://www.example.org/p/1?q=abc#f1'),
-    ('https://user:pass@example.org/p/1?q=abc#f1', 'https://example.org/p/1?q=abc#f1'),
-    ('https://user:@sub1.sub2.example.org/p/1?q=abc#f1', 'https://sub1.sub2.example.org/p/1?q=abc#f1'),
-    ('https://user@example.org/p/1/?q=abc#f1', 'https://example.org/p/1/?q=abc#f1'),
-    ('http://user@localhost:8080/p/1/?q=abc#f1', 'http://localhost:8080/p/1/?q=abc#f1'),
-    ('http://user@127.0.0.1:8080/p/1/?q=abc#f1', 'http://127.0.0.1:8080/p/1/?q=abc#f1'),
+@pytest.mark.parametrize('url,masked_q,masked_path,res', (
+    ('https://example.org', False, False, 'https://example.org'),
+    ('https://www.example.org', False, False, 'https://www.example.org'),
+    ('http://example.org/p/1', False, False, 'http://example.org/p/1'),
+    ('http://www.example.org/p/1', False, False, 'http://www.example.org/p/1'),
+    ('http://www.example.org/p/1?q=abc&v=123&x=some%20thing', False, False,
+     'http://www.example.org/p/1?q=abc&v=123&x=some%20thing'),
+    ('http://www.example.org/p/1?q=abc#f1', False, False, 'http://www.example.org/p/1?q=abc#f1'),
+    ('https://user:pass@www.example.org/p/1?q=abc#f1', False, False, 'https://www.example.org/p/1?q=abc#f1'),
+    ('https://user:@www.example.org/p/1?q=abc#f1', False, False, 'https://www.example.org/p/1?q=abc#f1'),
+    ('https://user@www.example.org/p/1?q=abc#f1', False, False, 'https://www.example.org/p/1?q=abc#f1'),
+    ('https://user:pass@example.org/p/1?q=abc#f1', False, False, 'https://example.org/p/1?q=abc#f1'),
+    ('https://user:@sub1.sub2.example.org/p/1?q=abc#f1', False, False, 'https://sub1.sub2.example.org/p/1?q=abc#f1'),
+    ('https://user@example.org/p/1/?q=abc#f1', False, False, 'https://example.org/p/1/?q=abc#f1'),
+    ('http://user@localhost:8080/p/1/?q=abc#f1', False, False, 'http://localhost:8080/p/1/?q=abc#f1'),
+    ('http://user@127.0.0.1:8080/p/1/?q=abc#f1', False, False, 'http://127.0.0.1:8080/p/1/?q=abc#f1'),
+    ('http://user@127.0.0.1:8080/p/1/?token=123abc#f1', True, True,
+     'http://127.0.0.1:8080/??/?token=%3F#f1'),
 ))
-def test_sanitize_url(url, res):
-    assert sanitize_url(url) == res
+def test_sanitize_url(url, masked_q, masked_path, res):
+    assert sanitize_url(url, mask_url_query=masked_q, mask_url_path=masked_path) == res

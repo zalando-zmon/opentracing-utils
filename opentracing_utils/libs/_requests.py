@@ -25,11 +25,20 @@ OPERATION_NAME_PREFIX = 'requests.send'
 logger = logging.getLogger(__name__)
 
 
-def trace_requests(default_tags=None, set_error_tag=True):
+def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True, mask_url_path=False):
     """Patch requests library with OpenTracing support.
 
     :param default_tags: Default span tags to included with every outgoing request.
     :type default_tags: dict
+
+    :param set_error_tag: Set error tag to span if request is not ok.
+    :type set_error_tag: bool
+
+    :param mask_url_query: Mask URL query args.
+    :type mask_url_query: bool
+
+    :param mask_url_path: Mask URL path.
+    :type mask_url_path: bool
     """
     @trace(pass_span=True, tags=default_tags)
     def requests_send_wrapper(self, request, **kwargs):
@@ -38,10 +47,15 @@ def trace_requests(default_tags=None, set_error_tag=True):
         k, request_span = get_span_from_kwargs(inspect_stack=False, **kwargs)
         kwargs.pop(k, None)
 
+        components = parse.urlsplit(request.url)
+
         if request_span:
             (request_span
                 .set_operation_name(op_name)
-                .set_tag(ot_tags.HTTP_URL, sanitize_url(request.url))
+                .set_tag(ot_tags.PEER_HOSTNAME, components.hostname)
+                .set_tag(
+                    ot_tags.HTTP_URL,
+                    sanitize_url(request.url, mask_url_query=mask_url_query, mask_url_path=mask_url_path))
                 .set_tag(ot_tags.HTTP_METHOD, request.method)
                 .set_tag(ot_tags.SPAN_KIND, ot_tags.SPAN_KIND_RPC_CLIENT))
 
@@ -68,13 +82,17 @@ def trace_requests(default_tags=None, set_error_tag=True):
     requests.adapters.HTTPAdapter.send = requests_send_wrapper
 
 
-def sanitize_url(url):
+def sanitize_url(url, mask_url_query=True, mask_url_path=False):
     parsed = parse.urlsplit(url)
     if not parsed.username and not parsed.password:
         return url
 
+    # masking - may be give some hints in masking query and path instead of '?' ??
     host = '{}:{}'.format(parsed.hostname, parsed.port) if parsed.port else parsed.hostname
-    components = parse.SplitResult(
-        parsed.scheme, host, parsed.path, parsed.query, parsed.fragment)
+    query = str(parse.urlencode({k: '?' for k in parse.parse_qs(parsed.query).keys()})) if \
+        mask_url_query else parsed.query
+    path = '/??/' if parsed.path and mask_url_path else parsed.path
+
+    components = parse.SplitResult(parsed.scheme, host, path, query, parsed.fragment)
 
     return parse.urlunsplit(components)

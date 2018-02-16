@@ -319,6 +319,12 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
     # In case you want to include default span tags to be sent with every outgoing request.
     # trace_requests(default_tags={'account_id': '123'}, set_error_tag=False)
 
+    # In case you want to keep the URL query args (masked by default in order to avoid leaking auth tokens etc...)
+    # trace_requests(mask_url_query=False)
+
+    # You can also mask URL path parameters (e.g. http://hostname/1 will be http://hostname/??/)
+    # trace_requests(mask_url_path=True)
+
     import requests
 
     def main():
