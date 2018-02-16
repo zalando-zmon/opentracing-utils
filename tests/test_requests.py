@@ -15,7 +15,7 @@ from basictracer import BasicTracer
 
 from .conftest import Recorder
 from opentracing_utils import trace
-from opentracing_utils.libs._requests import sanitize_url
+from opentracing_utils.common import sanitize_url
 
 
 URL = 'http://example.com/'

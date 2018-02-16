@@ -8,6 +8,8 @@ try:
 except Exception:  # pragma: no cover
     pass
 
+from opentracing_utils.common import sanitize_url
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,7 @@ DEFUALT_RESPONSE_ATTRIBUTES = ('status_code',)
 
 
 def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFUALT_RESPONSE_ATTRIBUTES,
-                default_tags=None, error_on_4xx=True):
+                default_tags=None, error_on_4xx=True, mask_url_query=False, mask_url_path=False):
     """
     Add OpenTracing to Flask applications using ``before_request`` & ``after_request``.
 
@@ -40,6 +42,12 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
 
     :param error_on_4xx: Set ``error`` tag in span if response is ``4xx`` or ``5xx``. Default is ``True``.
     :type error_on_4xx: bool
+
+    :param mask_url_query: Mask URL query args in span. Default is False.
+    :type mask_url_query: bool
+
+    :param mask_url_path: Mask URL path in span. Default is False.
+    :type mask_url_path: bool
     """
 
     min_error_code = 400 if error_on_4xx else 500
@@ -65,6 +73,12 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
                 if hasattr(request, attr):
                     try:
                         tag_value = str(getattr(request, attr))
+
+                        # Masking URL query and path params.
+                        if attr == 'url':
+                            tag_value = sanitize_url(
+                                tag_value, mask_url_query=mask_url_query, mask_url_path=mask_url_path)
+
                         if tag_value:
                             span.set_tag(attr, tag_value)
                     except Exception:

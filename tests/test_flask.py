@@ -35,6 +35,10 @@ def get_flask_app():
     def root():
         return 'Hello Test'
 
+    @app.route('/resource/<r>')
+    def resource(r):
+        return 'Hello Resource'
+
     @app.route('/error/<code>')
     def error(code):
         return make_response('error', int(code))
@@ -58,6 +62,26 @@ def test_trace_flask(monkeypatch):
     assert len(recorder.spans) == 1
 
     assert recorder.spans[0].tags['url'] == 'http://localhost/'
+    assert recorder.spans[0].tags['method'] == 'GET'
+    assert recorder.spans[0].tags['status_code'] == '200'
+
+
+@pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
+def test_trace_flask_mask_url(monkeypatch):
+    app = get_flask_app()
+    recorder = get_recorder()
+
+    trace_flask(app, mask_url_query=True, mask_url_path=True)
+
+    with app.app_context():
+        client = app.test_client()
+
+        r = client.get('/resource/1?token=1234')
+        assert b'Hello Resource' in r.data
+
+    assert len(recorder.spans) == 1
+
+    assert recorder.spans[0].tags['url'] == 'http://localhost/??/?token=%3F'
     assert recorder.spans[0].tags['method'] == 'GET'
     assert recorder.spans[0].tags['status_code'] == '200'
 

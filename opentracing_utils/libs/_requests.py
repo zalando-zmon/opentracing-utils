@@ -18,6 +18,7 @@ from opentracing.ext import tags as ot_tags
 
 from opentracing_utils.decorators import trace
 from opentracing_utils.span import get_span_from_kwargs
+from opentracing_utils.common import sanitize_url
 
 
 OPERATION_NAME_PREFIX = 'requests.send'
@@ -80,19 +81,3 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True, m
 
     # The Patch!
     requests.adapters.HTTPAdapter.send = requests_send_wrapper
-
-
-def sanitize_url(url, mask_url_query=True, mask_url_path=False):
-    parsed = parse.urlsplit(url)
-    if not parsed.username and not parsed.password:
-        return url
-
-    # masking - may be give some hints in masking query and path instead of '?' ??
-    host = '{}:{}'.format(parsed.hostname, parsed.port) if parsed.port else parsed.hostname
-    query = str(parse.urlencode({k: '?' for k in parse.parse_qs(parsed.query).keys()})) if \
-        mask_url_query else parsed.query
-    path = '/??/' if parsed.path and mask_url_path else parsed.path
-
-    components = parse.SplitResult(parsed.scheme, host, path, query, parsed.fragment)
-
-    return parse.urlunsplit(components)
