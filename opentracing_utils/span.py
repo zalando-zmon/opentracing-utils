@@ -103,11 +103,6 @@ def extract_span_from_kwargs(**kwargs):
 
 
 def remove_span_from_kwargs(**kwargs):
-    span_key = None
-    for k, v in kwargs.items():
-        if isinstance(v, opentracing.Span):
-            span_key = k
-            break
-
+    span_key, _ = get_span_from_kwargs(**kwargs)
     kwargs.pop(span_key, None)
     return kwargs
