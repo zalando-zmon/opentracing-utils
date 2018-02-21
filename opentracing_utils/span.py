@@ -95,4 +95,14 @@ def extract_span_from_kwargs(**kwargs):
     """Return current span from kwargs"""
     _, span = get_span_from_kwargs(**kwargs)
 
+    if not span:
+        span = opentracing.tracer.start_span()
+        span.log_kv({'opentracing_utils.warning': 'Cannot find span in kwargs. Starting new span!'})
+
     return span
+
+
+def remove_span_from_kwargs(**kwargs):
+    span_key, _ = get_span_from_kwargs(**kwargs)
+    kwargs.pop(span_key, None)
+    return kwargs
