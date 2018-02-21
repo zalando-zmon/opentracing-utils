@@ -6,7 +6,7 @@ from opentracing.ext import tags as opentracing_tags
 from basictracer import BasicTracer
 
 
-from opentracing_utils.span import get_new_span, adjust_span, extract_span_from_kwargs
+from opentracing_utils.span import get_new_span, adjust_span, extract_span_from_kwargs, remove_span_from_kwargs
 from opentracing_utils.span import DEFAULT_SPAN_ARG_NAME
 
 
@@ -69,3 +69,21 @@ def test_extract_span_from_kwargs(monkeypatch):
     extracted = extract_span_from_kwargs(span=span, x=1, y='some-value')
 
     assert extracted == span
+
+
+def test_extract_span_from_kwargs_no_span(monkeypatch):
+    extracted = extract_span_from_kwargs(x=1, y='some-value')
+
+    assert isinstance(extracted, opentracing.Span)
+
+
+def test_remove_span_from_kwargs(monkeypatch):
+    kwargs = {
+        'span': opentracing.tracer.start_span(),
+        'not_span': 1,
+        'also_not_span': 'no span',
+    }
+
+    clean_kwargs = remove_span_from_kwargs(**kwargs)
+
+    assert clean_kwargs == {'not_span': 1, 'also_not_span': 'no span'}
