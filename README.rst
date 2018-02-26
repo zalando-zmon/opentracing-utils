@@ -185,7 +185,7 @@ OPENTRACING_LIGHTSTEP_VERBOSITY
 
 .. code-block:: python
 
-    from opentracing_utils import trace, extract_span
+    from opentracing_utils import trace, extract_span_from_kwargs
 
     # decorate all your functions that require tracing
 
@@ -198,7 +198,7 @@ OPENTRACING_LIGHTSTEP_VERBOSITY
     # Traced function with access to created span in ``kwargs``
     @trace(operation_name='user.operation', pass_span=True)
     def user_operation(user, op, **kwargs):
-        current_span = extract_span(**kwargs)
+        current_span = extract_span_from_kwargs(**kwargs)
 
         current_span.set_tag('user.id', user.id)
 
@@ -276,6 +276,36 @@ If you plan to use multiple traces then it is better to always pass the span as 
 
         # It is better to pass ``second_span`` explicitly
         call_traced(span=second_span)
+
+
+Generators (yield)
+^^^^^^^^^^^^^^^^^^
+
+Using generators could get tricky and leads to invalid parent span inspection. It is recommended to pass the span explicitly.
+
+.. code-block:: python
+
+    @trace(pass_span=True)
+    def gen(**kwargs):
+        s = extract_span_from_kwargs(**kwargs)  # noqa
+
+        # Extract and pass span to ``f2()`` otherwise it could get ``f1()`` as parent span instead of ``gen()``
+        f2(span=s)
+
+        for i in range(10):
+            yield i
+
+    @trace()
+    def f2():
+        pass
+
+    @trace()
+    def f1():
+        list(gen())
+
+    first_span = opentracing.tracer.start_span(operation_name='first_trace')
+    with first_span:
+        f1()
 
 
 External libraries and clients
