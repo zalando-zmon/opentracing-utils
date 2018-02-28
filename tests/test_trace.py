@@ -128,11 +128,20 @@ def test_trace_nested(pass_span):
     @trace(pass_span=pass_span)
     def parent(**kwargs):
         assert is_span_in_kwargs(**kwargs) is pass_span
+
+        if pass_span:
+            current_span = extract_span_from_kwargs(**kwargs)
+            assert current_span.operation_name == 'parent'
+
         nested()
 
     @trace(pass_span=pass_span)
     def nested(**kwargs):
         assert is_span_in_kwargs(**kwargs) is pass_span
+
+        if pass_span:
+            current_span = extract_span_from_kwargs(**kwargs)
+            assert current_span.operation_name == 'nested'
 
     recorder = Recorder()
     opentracing.tracer = BasicTracer(recorder=recorder)
