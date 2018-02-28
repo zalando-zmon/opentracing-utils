@@ -20,8 +20,10 @@ def trace(component=None, operation_name=None, tags=None, use_follows_from=False
     :param use_follows_from: Use a ``follows_from`` reference instead of the default ``child_of``.
     :type use_follows_from: bool
 
-    :param pass_span: Whether to pass the span to the decorated function. Default is False.
+    :param pass_span: Whether to pass the newly created span to the decorated function. Default is False.
                       This is useful if the traced function would add extra tags to the span.
+                      *IMPORTANT*: This will not pass the parent span if any, it will only pass the new span decorating
+                      the traced function even if the caller passed the parent span explicitly.
     :type pass_span: bool
 
     :param inspect_stack: Whether to inspect call stack frames to retrieve the parent span. Default is True.
@@ -46,7 +48,7 @@ def trace(component=None, operation_name=None, tags=None, use_follows_from=False
                 f, args, kwargs, inspect_stack=inspect_stack, ignore_parent_span=ignore_parent_span,
                 span_extractor=span_extractor, use_follows_from=use_follows_from)
 
-            if pass_span and span_arg_name and span_arg_name not in kwargs:
+            if pass_span and span_arg_name:
                 kwargs[span_arg_name] = current_span
             else:
                 if span_extractor:
