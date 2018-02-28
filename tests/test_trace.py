@@ -108,9 +108,6 @@ def test_trace_generator():
 
     assert len(recorder.spans) == 4
 
-    for s in recorder.spans:
-        print(s.operation_name, s.parent_id, s.context.span_id)
-
     assert recorder.spans[0].context.trace_id == test_span.context.trace_id
     assert recorder.spans[0].parent_id == recorder.spans[2].context.span_id
 
