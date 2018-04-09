@@ -36,6 +36,16 @@ def assert_send_reuqest_mock(resp):
     return send_request_mock
 
 
+def assert_send_request_mock_no_traces(resp):
+    def send_request_mock(self, request, **kwargs):
+        assert 'ot-tracer-traceid' not in request.headers
+        assert 'ot-tracer-spanid' not in request.headers
+        assert request.headers[CUSTOM_HEADER] == CUSTOM_HEADER_VALUE
+
+        return resp
+    return send_request_mock
+
+
 @pytest.mark.parametrize('status_code', (200, 302, 400, 500))
 def test_trace_requests(monkeypatch, status_code):
     resp = Response()
@@ -76,6 +86,22 @@ def test_trace_requests(monkeypatch, status_code):
 
     if status_code >= 400:
         assert recorder.spans[0].tags['error'] is True
+
+
+def test_trace_requests_with_ignore_pattern(monkeypatch):
+    resp = Response()
+    resp.status_code = 200
+    resp.url = URL
+
+    trace_requests(ignore_patterns=[r".*{}.*".format(URL)])
+
+    monkeypatch.setattr(
+       'opentracing_utils.libs._requests.__requests_http_send',
+       assert_send_request_mock_no_traces(resp)
+    )
+
+    response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+    assert response.status_code == resp.status_code
 
 
 def test_trace_requests_with_tags(monkeypatch):

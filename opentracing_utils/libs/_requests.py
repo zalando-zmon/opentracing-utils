@@ -3,6 +3,7 @@ from future import standard_library
 standard_library.install_aliases()  # noqa
 
 import logging
+import re
 import urllib.parse as parse
 
 try:
@@ -17,7 +18,7 @@ from opentracing import Format
 from opentracing.ext import tags as ot_tags
 
 from opentracing_utils.decorators import trace
-from opentracing_utils.span import get_span_from_kwargs
+from opentracing_utils.span import get_span_from_kwargs, remove_span_from_kwargs
 from opentracing_utils.common import sanitize_url
 
 
@@ -26,7 +27,7 @@ OPERATION_NAME_PREFIX = 'requests.send'
 logger = logging.getLogger(__name__)
 
 
-def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True, mask_url_path=False):
+def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True, mask_url_path=False, ignore_patterns=[]):
     """Patch requests library with OpenTracing support.
 
     :param default_tags: Default span tags to included with every outgoing request.
@@ -40,9 +41,16 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True, m
 
     :param mask_url_path: Mask URL path.
     :type mask_url_path: bool
+
+    :param ignore_patterns: Ignore tracing for any URL's that match entries in this list
+    :type ignore_patterns: list
     """
     @trace(pass_span=True, tags=default_tags)
     def requests_send_wrapper(self, request, **kwargs):
+        if any(re.match(pattern, request.url) for pattern in ignore_patterns):
+            logger.warn("An ignore pattern matched, ignoring traces")
+            return __requests_http_send(self, request, **remove_span_from_kwargs(**kwargs))
+
         op_name = '{}.{}'.format(OPERATION_NAME_PREFIX, request.method)
 
         k, request_span = get_span_from_kwargs(inspect_stack=False, **kwargs)
