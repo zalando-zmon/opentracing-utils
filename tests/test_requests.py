@@ -23,7 +23,7 @@ CUSTOM_HEADER = 'X-CUSTOM'
 CUSTOM_HEADER_VALUE = '123'
 
 
-def assert_send_reuqest_mock(resp):
+def assert_send_request_mock(resp):
 
     def send_request_mock(self, request, **kwargs):
         assert 'ot-tracer-traceid' in request.headers
@@ -52,7 +52,7 @@ def test_trace_requests(monkeypatch, status_code):
     resp.status_code = status_code
     resp.url = URL
 
-    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
 
     @trace()
     def f1():
@@ -111,7 +111,7 @@ def test_trace_requests_with_tags(monkeypatch):
 
     trace_requests(default_tags={'tag1': 'value1'})
 
-    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
 
     @trace()
     def f1():
@@ -155,7 +155,7 @@ def test_trace_requests_no_error_tag(monkeypatch):
 
     trace_requests(set_error_tag=False)
 
-    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
 
     recorder = Recorder()
     t = BasicTracer(recorder=recorder)
@@ -186,7 +186,7 @@ def test_trace_requests_session(monkeypatch):
     resp.status_code = 200
     resp.url = URL
 
-    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
 
     recorder = Recorder()
     t = BasicTracer(recorder=recorder)
@@ -220,7 +220,7 @@ def test_trace_requests_nested(monkeypatch):
     resp.status_code = 200
     resp.url = URL
 
-    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
 
     recorder = Recorder()
     t = BasicTracer(recorder=recorder)
@@ -303,7 +303,7 @@ def test_trace_requests_no_parent_span(monkeypatch):
     resp.status_code = 200
     resp.url = URL
 
-    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_reuqest_mock(resp))
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
 
     recorder = Recorder()
     t = BasicTracer(recorder=recorder)
