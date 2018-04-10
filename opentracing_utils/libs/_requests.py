@@ -18,7 +18,7 @@ from opentracing import Format
 from opentracing.ext import tags as ot_tags
 
 from opentracing_utils.decorators import trace
-from opentracing_utils.span import get_span_from_kwargs, remove_span_from_kwargs
+from opentracing_utils.span import get_span_from_kwargs
 from opentracing_utils.common import sanitize_url
 
 
@@ -49,7 +49,7 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True, m
     def requests_send_wrapper(self, request, **kwargs):
         if any(re.match(pattern, request.url) for pattern in ignore_patterns):
             logger.warn("An ignore pattern matched, ignoring traces")
-            return __requests_http_send(self, request, **remove_span_from_kwargs(**kwargs))
+            return __requests_http_send(self, request, **kwargs)
 
         op_name = '{}.{}'.format(OPERATION_NAME_PREFIX, request.method)
 
