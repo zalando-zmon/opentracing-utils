@@ -12,7 +12,6 @@ OPENTRACING PYTHON UTILS
 .. image:: https://codecov.io/gh/zalando-zmon/opentracing-utils/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/zalando-zmon/opentracing-utils
   :alt: Code coverage
-
 .. image:: https://img.shields.io/badge/OpenTracing-enabled-blue.svg
    :target: http://opentracing.io
    :alt: OpenTracing enabled
@@ -354,6 +353,13 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
 
     # You can also mask URL path parameters (e.g. http://hostname/1 will be http://hostname/??/)
     # trace_requests(mask_url_path=True)
+
+    # The library patches the requests library send functionality. This causes
+    # all requests to propagate the span id's in the headers. Sometimes this is
+    # undesireable so it's also possible to avoid tracing specific URL's or
+    # endpoints. trace_requests accepts a list of regex patterns and matches the
+    # request.url against these patterns, ignoring traces if any pattern matches.
+    # trace_requests(ignore_patterns=[r".*hostname/endpoint"]
 
     import requests
 

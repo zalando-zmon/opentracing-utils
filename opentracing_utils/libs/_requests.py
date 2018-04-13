@@ -3,6 +3,7 @@ from future import standard_library
 standard_library.install_aliases()  # noqa
 
 import logging
+import re
 import urllib.parse as parse
 
 try:
@@ -26,7 +27,8 @@ OPERATION_NAME_PREFIX = 'requests.send'
 logger = logging.getLogger(__name__)
 
 
-def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True, mask_url_path=False):
+def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True,
+                   mask_url_path=False, ignore_url_patterns=None):
     """Patch requests library with OpenTracing support.
 
     :param default_tags: Default span tags to included with every outgoing request.
@@ -40,9 +42,16 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True, m
 
     :param mask_url_path: Mask URL path.
     :type mask_url_path: bool
+
+    :param ignore_url_patterns: Ignore tracing for any URL's that match entries in this list
+    :type ignore_url_patterns: list
     """
     @trace(pass_span=True, tags=default_tags)
     def requests_send_wrapper(self, request, **kwargs):
+        if ignore_url_patterns is not None:
+            if any(re.match(pattern, request.url) for pattern in ignore_url_patterns):
+                return __requests_http_send(self, request, **kwargs)
+
         op_name = '{}.{}'.format(OPERATION_NAME_PREFIX, request.method)
 
         k, request_span = get_span_from_kwargs(inspect_stack=False, **kwargs)
