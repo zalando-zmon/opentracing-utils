@@ -88,12 +88,12 @@ def test_trace_requests(monkeypatch, status_code):
         assert recorder.spans[0].tags['error'] is True
 
 
-def test_trace_requests_with_ignore_pattern(monkeypatch):
+def test_trace_requests_with_ignore_url_pattern(monkeypatch):
     resp = Response()
     resp.status_code = 200
     resp.url = URL
 
-    trace_requests(ignore_patterns=[r".*{}.*".format(URL)])
+    trace_requests(ignore_url_patterns=[r".*{}.*".format(URL)])
 
     monkeypatch.setattr(
        'opentracing_utils.libs._requests.__requests_http_send',
