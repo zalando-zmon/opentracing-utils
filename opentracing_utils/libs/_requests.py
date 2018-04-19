@@ -46,7 +46,20 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True,
     :param ignore_url_patterns: Ignore tracing for any URL's that match entries in this list
     :type ignore_url_patterns: list
     """
-    @trace(pass_span=True, tags=default_tags)
+    def skip_span_matcher(*args, **kwargs):
+        if ignore_url_patterns is None:
+            return False
+
+        try:
+            request = [a for a in args if isinstance(a, requests.PreparedRequest)][0]
+        except IndexError:
+            return False
+
+        if any(re.match(p, request.url) for p in ignore_url_patterns):
+            return True
+        return False
+
+    @trace(pass_span=True, tags=default_tags, skip_span=skip_span_matcher)
     def requests_send_wrapper(self, request, **kwargs):
         if ignore_url_patterns is not None:
             if any(re.match(pattern, request.url) for pattern in ignore_url_patterns):

@@ -1,10 +1,10 @@
 import functools
 
-from opentracing_utils.span import get_new_span, adjust_span, get_span_from_kwargs
+from opentracing_utils.span import get_new_span, adjust_span, get_span_from_kwargs, remove_span_from_kwargs
 
 
 def trace(component=None, operation_name=None, tags=None, use_follows_from=False, pass_span=False, inspect_stack=True,
-          ignore_parent_span=False, span_extractor=None):
+          ignore_parent_span=False, span_extractor=None, skip_span=None):
     """
     Opentracing tracer decorator. Attempts to extract parent span and create a new span for the decorated function.
 
@@ -37,11 +37,17 @@ def trace(component=None, operation_name=None, tags=None, use_follows_from=False
                            Callable should expect the traced function *args & **kwargs.
                            If None is returned from the callable, then normal span extraction will be applied.
     :type span_extractor: Callable[*args, **kwargs]
+
+    :param skip_span: A callable which can be used to determine if the span should be skipped.
+    :type skip_span: Callable[*args, **kwargs]
     """
 
     def trace_decorator(f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
+            if skip_span is not None and skip_span(*args, **kwargs):
+                return f(*args, **remove_span_from_kwargs(**kwargs))
+
             # Get a new current span wrapping this traced function.
             # ``get_new_span`` should retrieve parent_span if any!
             span_arg_name, current_span = get_new_span(

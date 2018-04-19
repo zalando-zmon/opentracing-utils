@@ -40,6 +40,7 @@ def assert_send_request_mock_no_traces(resp):
     def send_request_mock(self, request, **kwargs):
         assert 'ot-tracer-traceid' not in request.headers
         assert 'ot-tracer-spanid' not in request.headers
+        assert '__OPENTRACINGUTILS_SPAN' not in kwargs
         assert request.headers[CUSTOM_HEADER] == CUSTOM_HEADER_VALUE
 
         return resp
@@ -101,6 +102,61 @@ def test_trace_requests_with_ignore_url_pattern(monkeypatch):
     )
 
     response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+    assert response.status_code == resp.status_code
+
+
+def test_trace_requests_do_not_ignore_if_no_match(monkeypatch):
+    resp = Response()
+    resp.status_code = 200
+    resp.url = URL
+
+    trace_requests(ignore_url_patterns=[r".*{}.*".format(URL)])
+
+    monkeypatch.setattr(
+       'opentracing_utils.libs._requests.__requests_http_send',
+       assert_send_request_mock(resp)
+    )
+
+    response = requests.get("http://I-do-not-match.com", headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+    assert response.status_code == resp.status_code
+
+
+def test_trace_requests_with_ignore_url_pattern_prune_kwargs(monkeypatch):
+    """ In case there is a parent span already, the ignore url pattern must
+    still be respected """
+    resp = Response()
+    resp.status_code = 200
+    resp.url = URL
+
+    trace_requests(ignore_url_patterns=[r".*{}.*".format(URL)])
+
+    monkeypatch.setattr(
+       'opentracing_utils.libs._requests.__requests_http_send',
+       assert_send_request_mock_no_traces(resp)
+    )
+
+    @trace()
+    def f1():
+        pass
+
+    recorder = Recorder()
+    t = BasicTracer(recorder=recorder)
+    t.register_required_propagators()
+    opentracing.tracer = t
+
+    top_span = opentracing.tracer.start_span(operation_name='top_span')
+
+    with top_span:
+        response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+        f1()
+
+    # Top span, and  @trace for f1() create spans. With the ignore pattern
+    # in place, the call to requests.get should not add a span
+    assert len(recorder.spans) == 2
+
+    assert recorder.spans[0].context.trace_id == top_span.context.trace_id
+    assert recorder.spans[0].operation_name == 'f1'
+    assert recorder.spans[1].operation_name == 'top_span'
     assert response.status_code == resp.status_code
 
 
