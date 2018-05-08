@@ -402,3 +402,26 @@ def test_trace_loop():
         assert parent_span.tags == {'loop': idx}
         assert span.context.trace_id == parent_span.context.trace_id
         assert span.parent_id == parent_span.context.span_id
+
+
+def test_trace_skip_span():
+    def skip_span(skip_me, *args, **kwargs):
+        return skip_me
+
+    @trace(skip_span=skip_span)
+    def f1(skip_me):
+        pass
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    test_span = opentracing.tracer.start_span(operation_name='test_trace')
+
+    with test_span:
+        f1(False)
+        f1(True)
+
+    assert len(recorder.spans) == 2
+
+    assert recorder.spans[0].context.trace_id == test_span.context.trace_id
+    assert recorder.spans[0].parent_id == test_span.context.span_id
