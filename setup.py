@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 PY3 = sys.version_info.major == 3
 
 MAIN_PACKAGE = 'opentracing_utils'
-VERSION = '0.11'
+VERSION = '0.12'
 DESCRIPTION = 'OpenTracing utilities'
 
 

@@ -224,6 +224,34 @@ OPENTRACING_LIGHTSTEP_VERBOSITY
         # trace_me will have ``epoch`` span as its parent.
         trace_me()
 
+Skip Spans
+^^^^^^^^^^
+
+In certain cases you might need to skip certain spans while using the ``@trace`` decorator.
+
+.. code-block:: python
+
+    def skip_this_span(arg1, arg2, **kwargs):
+        if arg1 == 'special':
+            # span should be skipped
+            return True
+
+        return False
+
+
+    @trace(skip_span=skip_this_span)
+    def traced(arg1, arg2):
+        pass
+
+
+    top_span = opentracing.tracer.start_span(operation_name='top_trace')
+    with top_span:
+        # this call will be traced and have a span!
+        traced('open', 'tracing')
+
+        # this call won't be traced and no span to be added!
+        traced('special', 'tracing')
+
 
 Broken traces
 ^^^^^^^^^^^^^
