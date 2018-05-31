@@ -1,10 +1,11 @@
 basictracer
+flask
 mock==2.0.0
 opentracing
 pytest
 pytest_cov
 requests
-flask
+sqlalchemy
 # Third party tracers
 jaeger-client
 instana

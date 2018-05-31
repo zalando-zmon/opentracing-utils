@@ -19,7 +19,7 @@ DEFUALT_RESPONSE_ATTRIBUTES = ('status_code',)
 
 
 def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFUALT_RESPONSE_ATTRIBUTES,
-                default_tags=None, error_on_4xx=True, mask_url_query=False, mask_url_path=False):
+                default_tags=None, error_on_4xx=True, mask_url_query=False, mask_url_path=False, operation_name=None):
     """
     Add OpenTracing to Flask applications using ``before_request`` & ``after_request``.
 
@@ -48,39 +48,49 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
 
     :param mask_url_path: Mask URL path in span. Default is False.
     :type mask_url_path: bool
+
+    :param operation_name: Callable that returns the operation name of the request span. Default is None.
+    :type operation_name: Callable[*args, **kwargs]
     """
 
     min_error_code = 400 if error_on_4xx else 500
 
     @app.before_request
     def trace_request():
-        operation_name = request.endpoint
+        op_name = request.endpoint if request.endpoint else request.path.strip('/').replace('/', '_')
+
+        if callable(operation_name):
+            op_name = operation_name()
 
         span = None
         headers_carrier = dict(request.headers.items())
 
         try:
             span_ctx = opentracing.tracer.extract(opentracing.Format.HTTP_HEADERS, headers_carrier)
-            span = opentracing.tracer.start_span(operation_name=operation_name, child_of=span_ctx)
+            span = opentracing.tracer.start_span(operation_name=op_name, child_of=span_ctx)
         except (opentracing.InvalidCarrierException, opentracing.SpanContextCorruptedException):
-            span = opentracing.tracer.start_span(operation_name=operation_name, tags={'flask-no-propagation': True})
+            span = opentracing.tracer.start_span(operation_name=op_name, tags={'flask-no-propagation': True})
 
         if span is None:
-            span = opentracing.tracer.start_span(operation_name)
+            span = opentracing.tracer.start_span(op_name)
 
         if request_attr:
             for attr in request_attr:
                 if hasattr(request, attr):
                     try:
                         tag_value = str(getattr(request, attr))
+                        tag_key = attr
 
                         # Masking URL query and path params.
                         if attr == 'url':
                             tag_value = sanitize_url(
                                 tag_value, mask_url_query=mask_url_query, mask_url_path=mask_url_path)
+                            tag_key = ot_tags.HTTP_URL
+                        elif attr == 'method':
+                            tag_key = ot_tags.HTTP_METHOD
 
                         if tag_value:
-                            span.set_tag(attr, tag_value)
+                            span.set_tag(tag_key, tag_value)
                     except Exception:
                         pass
 
@@ -91,6 +101,7 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
                 except Exception:
                     pass
 
+        span.set_tag('component', 'flask')
         span.set_tag(ot_tags.SPAN_KIND, ot_tags.SPAN_KIND_RPC_SERVER)
 
         # Use ``flask.request`` as in process context.
@@ -103,7 +114,10 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
                 if response_attr:
                     for attr in response_attr:
                         if hasattr(response, attr):
-                            request.current_span.set_tag(attr, str(getattr(response, attr)))
+                            tag_key = attr
+                            if tag_key == 'status_code':
+                                tag_key = ot_tags.HTTP_STATUS_CODE
+                            request.current_span.set_tag(tag_key, str(getattr(response, attr)))
 
                 if response.status_code >= min_error_code:
                     request.current_span.set_tag('error', True)
@@ -120,7 +134,7 @@ def extract_span_from_flask_request(*args, **kwargs):
     try:
         if hasattr(request, 'current_span'):
             return request.current_span
-    except Exception:
+    except Exception:  # pragma: no cover
         pass
 
     return None

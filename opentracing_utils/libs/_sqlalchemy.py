@@ -1,0 +1,52 @@
+import opentracing
+
+try:
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.event import listens_for
+except ImportError:  # pragma: no cover
+    pass
+
+from opentracing.ext import tags as ot_tags
+from opentracing_utils.span import get_parent_span
+
+
+def trace_sqlalchemy(set_error_tag=False):
+    """
+    Trace Sqlalchemy database queries.
+
+    :param set_error_tag: Database query span will set error tag in case of any exceptions. Default is False.
+    :type set_error_tag: bool
+    """
+
+    @listens_for(Engine, 'before_cursor_execute')
+    def trace_before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        _, parent_span = get_parent_span()
+
+        if context:
+            operation_name = statement.split(' ')[0].lower() or 'query'
+            query_span = opentracing.tracer.start_span(operation_name=operation_name, child_of=parent_span)
+
+            if context:
+                (query_span
+                    .set_tag(ot_tags.COMPONENT, 'sqlalchemy')
+                    .set_tag('db.type', 'sql')
+                    .set_tag('db.engine', context.dialect.name)
+                    .set_tag('db.statement', statement))
+
+                context._query_span = query_span
+
+    @listens_for(Engine, 'after_cursor_execute')
+    def tarce_after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        if hasattr(context, '_query_span'):
+            context._query_span.finish()
+
+    @listens_for(Engine, 'handle_error')
+    def trace_handle_error(exception_context):
+        context = exception_context.execution_context
+        if hasattr(context, '_query_span'):
+            context._query_span.log_kv({'exception': str(exception_context.original_exception)})
+
+            if set_error_tag:
+                context._query_span.set_tag('error', True)
+
+            context._query_span.finish()

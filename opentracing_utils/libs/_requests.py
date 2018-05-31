@@ -71,12 +71,14 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True,
         if request_span:
             (request_span
                 .set_operation_name(op_name)
+                .set_tag(ot_tags.COMPONENT, 'requests')
                 .set_tag(ot_tags.PEER_HOSTNAME, components.hostname)
                 .set_tag(
                     ot_tags.HTTP_URL,
                     sanitize_url(request.url, mask_url_query=mask_url_query, mask_url_path=mask_url_path))
                 .set_tag(ot_tags.HTTP_METHOD, request.method)
-                .set_tag(ot_tags.SPAN_KIND, ot_tags.SPAN_KIND_RPC_CLIENT))
+                .set_tag(ot_tags.SPAN_KIND, ot_tags.SPAN_KIND_RPC_CLIENT)
+                .set_tag('timeout', kwargs.get('timeout')))
 
             # Inject our current span context to outbound request
             try:
