@@ -10,9 +10,17 @@ from opentracing.ext import tags as ot_tags
 from opentracing_utils.span import get_parent_span
 
 
-def trace_sqlalchemy(set_error_tag=False):
+def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=False):
     """
     Trace Sqlalchemy database queries.
+
+    :param operation_name: Callable to return the operation name of the query. By default, operation_name will be the
+                           clause of the SQL statement (e.g. select, update, delete).
+    :type operation_name: Callable[conn, cursor, statement, parameters, context, executemany]
+
+    :param span_extractor: Callable to return the parent span. Default is ``None``, and trace_sqlachemy will attempt
+                           to detect the parent span.
+    :type span_extractor: Callable[conn, cursor, statement, parameters, context, executemany]
 
     :param set_error_tag: Database query span will set error tag in case of any exceptions. Default is False.
     :type set_error_tag: bool
@@ -20,11 +28,17 @@ def trace_sqlalchemy(set_error_tag=False):
 
     @listens_for(Engine, 'before_cursor_execute')
     def trace_before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-        _, parent_span = get_parent_span()
+        if callable(span_extractor):
+            parent_span = span_extractor(conn, cursor, statement, parameters, context, executemany)
+        else:
+            _, parent_span = get_parent_span()
 
         if context:
-            operation_name = statement.split(' ')[0].lower() or 'query'
-            query_span = opentracing.tracer.start_span(operation_name=operation_name, child_of=parent_span)
+            op_name = statement.split(' ')[0].lower() or 'query'
+            if callable(operation_name):
+                op_name = operation_name(conn, cursor, statement, parameters, context, executemany)
+
+            query_span = opentracing.tracer.start_span(operation_name=op_name, child_of=parent_span)
 
             if context:
                 (query_span

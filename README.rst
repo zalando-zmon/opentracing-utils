@@ -34,7 +34,7 @@ Features
 
     * Flask (via ``trace_flask()``)
     * Requests (via ``trace_requests()``)
-    * TODO ...
+    * SQLAlchemy (via ``trace_sqlalchemy()``)
 
 Install
 =======
@@ -397,6 +397,29 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
         with span:
             # Following call will be traced as a ``child span`` and propagated via HTTP headers.
             requests.get('https://example.org')
+
+
+SQLAlchemy
+^^^^^^^^^^
+
+For tracing `SQLAlchemy <https://docs.sqlalchemy.org/en/latest/>`_ client library for all SQL queries.
+
+.. code-block:: python
+
+    # trace_sqlalchemy can be used to trace all SQL queries.
+    # By default, span operation_name will be deduced from the query statement (e.g. select, update, delete).
+    from opentracing_utils import trace_sqlalchemy.
+    trace_sqlalchemy()
+
+    # You can customize the span operation_name via supplying a callable
+    def get_sqlalchemy_span_op_name(conn, cursor, statement, parameters, context, executemany):
+        # inspect statement and parameters etc...
+        return 'custom_operation_name'
+    # trace_sqlalchemy(operation_name=get_sqlalchemy_span_op_name)
+
+    # By default, trace_sqlalchemy will not set error tags for SQL errors/exceptions. You can change that via ``set_error_tag`` param.
+    # trace_sqlalchemy(set_error_tag=True)
+
 
 License
 =======

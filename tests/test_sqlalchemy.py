@@ -195,3 +195,36 @@ def test_trace_sqlalchemy_error(monkeypatch, session, recorder, error):
             span_error = True
             break
     assert span_error is error
+
+
+def test_trace_sqlalchemy_operation_name(monkeypatch, session, recorder):
+
+    def get_operation_name(conn, cursor, statement, parameters, context, executemany):
+        return 'custom_query'
+
+    trace_sqlalchemy(operation_name=get_operation_name)
+
+    user = User(name='Tracer', is_active=True)
+    session.add(user)
+    session.commit()
+
+    assert recorder.spans[0].operation_name == 'custom_query'
+
+
+def test_trace_sqlalchemy_span_extractor(monkeypatch, session, recorder):
+    ignored_span = opentracing.tracer.start_span(operation_name='ignored_span')
+    custom_span = opentracing.tracer.start_span(operation_name='custom_span')
+
+    def get_custom_parent_span(conn, cursor, statement, parameters, context, executemany):
+        return custom_span
+
+    trace_sqlalchemy(span_extractor=get_custom_parent_span)
+
+    user = User(name='Tracer', is_active=True)
+    session.add(user)
+    session.commit()
+
+    assert recorder.spans[0].parent_id == custom_span.context.span_id
+
+    custom_span.finish()
+    ignored_span.finish()

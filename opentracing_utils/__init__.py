@@ -9,6 +9,7 @@ from opentracing_utils.span import extract_span_from_kwargs, remove_span_from_kw
 
 from opentracing_utils.libs._requests import trace_requests, sanitize_url
 from opentracing_utils.libs._flask import trace_flask, extract_span_from_flask_request
+from opentracing_utils.libs._sqlalchemy import trace_sqlalchemy
 
 
 __version__ = get_distribution('opentracing-utils').version
@@ -23,6 +24,7 @@ __all__ = (
     'trace',
     'trace_flask',
     'trace_requests',
+    'trace_sqlalchemy',
 
     'OPENTRACING_BASIC',
     'OPENTRACING_INSTANA',
