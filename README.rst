@@ -408,7 +408,7 @@ For tracing `SQLAlchemy <https://docs.sqlalchemy.org/en/latest/>`_ client librar
 
     # trace_sqlalchemy can be used to trace all SQL queries.
     # By default, span operation_name will be deduced from the query statement (e.g. select, update, delete).
-    from opentracing_utils import trace_sqlalchemy.
+    from opentracing_utils import trace_sqlalchemy
     trace_sqlalchemy()
 
     # You can customize the span operation_name via supplying a callable
