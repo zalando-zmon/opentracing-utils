@@ -22,7 +22,7 @@ from opentracing_utils.span import get_span_from_kwargs
 from opentracing_utils.common import sanitize_url
 
 
-OPERATION_NAME_PREFIX = 'requests.send'
+OPERATION_NAME_PREFIX = 'http_send'
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True,
             if any(re.match(pattern, request.url) for pattern in ignore_url_patterns):
                 return __requests_http_send(self, request, **kwargs)
 
-        op_name = '{}.{}'.format(OPERATION_NAME_PREFIX, request.method)
+        op_name = '{}_{}'.format(OPERATION_NAME_PREFIX, request.method.lower())
 
         k, request_span = get_span_from_kwargs(inspect_stack=False, **kwargs)
         kwargs.pop(k, None)

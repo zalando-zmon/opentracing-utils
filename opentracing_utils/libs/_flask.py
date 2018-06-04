@@ -101,7 +101,7 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
                 except Exception:
                     pass
 
-        span.set_tag('component', 'flask')
+        span.set_tag(ot_tags.COMPONENT, 'flask')
         span.set_tag(ot_tags.SPAN_KIND, ot_tags.SPAN_KIND_RPC_SERVER)
 
         # Use ``flask.request`` as in process context.
@@ -132,8 +132,7 @@ def extract_span_from_flask_request(*args, **kwargs):
     Safe utility function to extract the ``current_span`` from ``flask.request``. Compatible with ``@trace`` decorator.
     """
     try:
-        if hasattr(request, 'current_span'):
-            return request.current_span
+        return getattr(request, 'current_span', None)
     except Exception:  # pragma: no cover
         pass
 

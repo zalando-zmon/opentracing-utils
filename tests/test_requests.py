@@ -16,6 +16,7 @@ from basictracer import BasicTracer
 from .conftest import Recorder
 from opentracing_utils import trace
 from opentracing_utils.common import sanitize_url
+from opentracing_utils.libs._requests import OPERATION_NAME_PREFIX
 
 
 URL = 'http://example.com/'
@@ -86,6 +87,7 @@ def test_trace_requests(monkeypatch, status_code):
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['timeout'] is None
     assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
     if status_code >= 400:
         assert recorder.spans[0].tags['error'] is True
@@ -114,6 +116,7 @@ def test_trace_requests_timeout(monkeypatch, timeout):
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['timeout'] == timeout
     assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
 
 def test_trace_requests_with_ignore_url_pattern(monkeypatch):
@@ -223,6 +226,7 @@ def test_trace_requests_with_tags(monkeypatch):
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['timeout'] is None
     assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
     assert recorder.spans[0].tags['tag1'] == 'value1'
 
 
@@ -258,6 +262,7 @@ def test_trace_requests_no_error_tag(monkeypatch):
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['timeout'] is None
     assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
     assert 'error' not in recorder.spans[0].tags
 
 
@@ -295,6 +300,7 @@ def test_trace_requests_session(monkeypatch):
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['timeout'] is None
     assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
 
 def test_trace_requests_nested(monkeypatch):
@@ -340,6 +346,7 @@ def test_trace_requests_nested(monkeypatch):
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['timeout'] is None
     assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
 
 def test_trace_requests_no_propagators(monkeypatch):
@@ -380,6 +387,7 @@ def test_trace_requests_no_propagators(monkeypatch):
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['timeout'] is None
     assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
     logger.error.assert_called_once()
 
@@ -409,6 +417,7 @@ def test_trace_requests_no_parent_span(monkeypatch):
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
     assert recorder.spans[0].tags['timeout'] is None
     assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
     assert response.status_code == resp.status_code
 
