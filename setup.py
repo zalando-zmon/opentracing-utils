@@ -29,8 +29,9 @@ if __name__ == '__main__':
         name='opentracing-utils',
         version=VERSION,
         description=DESCRIPTION,
-        long_description=open('README.rst').read(),
-        license=open('LICENSE').read(),
+        long_description=open('README.rst', encoding='utf-8').read(),
+        license='The MIT License (MIT)',
+        url='https://github.com/zalando-zmon/opentracing-utils',
         packages=find_packages(exclude=['tests']),
         install_requires=[
             'future',

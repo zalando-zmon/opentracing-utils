@@ -43,7 +43,7 @@ Using pip (not released yet to PyPi)
 
 .. code-block:: bash
 
-    pip install -U -e git+ssh://git@github.com/zalando-zmon/opentracing-utils.git#egg=opentracing_utils
+    pip install -U opentracing-utils
 
 
 or by cloning the repo
