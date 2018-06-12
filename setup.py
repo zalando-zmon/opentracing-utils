@@ -11,7 +11,7 @@ PY3 = sys.version_info.major == 3
 
 MAIN_PACKAGE = 'opentracing_utils'
 VERSION = '0.13'
-DESCRIPTION = 'OpenTracing utilities'
+DESCRIPTION = 'OpenTracing utilities library'
 
 
 def load_req(req):
