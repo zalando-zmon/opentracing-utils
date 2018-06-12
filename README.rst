@@ -12,6 +12,15 @@ OPENTRACING PYTHON UTILS
 .. image:: https://codecov.io/gh/zalando-zmon/opentracing-utils/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/zalando-zmon/opentracing-utils
   :alt: Code coverage
+
+.. image:: https://img.shields.io/pypi/v/opentracing-utils.svg
+   :target: https://pypi.python.org/pypi/opentracing-utils/
+   :alt: Latest PyPI version
+
+.. image:: https://img.shields.io/pypi/l/opentracing-utils.svg
+   :target: https://pypi.python.org/pypi/opentracing-utils/
+   :alt: License
+
 .. image:: https://img.shields.io/badge/OpenTracing-enabled-blue.svg
    :target: http://opentracing.io
    :alt: OpenTracing enabled
