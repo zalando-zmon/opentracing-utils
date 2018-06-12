@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 PY3 = sys.version_info.major == 3
 
 MAIN_PACKAGE = 'opentracing_utils'
-VERSION = '0.12.2'
+VERSION = '0.13'
 DESCRIPTION = 'OpenTracing utilities library'
 
 
@@ -31,6 +31,7 @@ if __name__ == '__main__':
         description=DESCRIPTION,
         long_description=open('README.rst', encoding='utf-8').read(),
         license='The MIT License (MIT)',
+        url='https://github.com/zalando-zmon/opentracing-utils',
         packages=find_packages(exclude=['tests']),
         install_requires=[
             'future',

@@ -61,9 +61,33 @@ def test_trace_flask(monkeypatch):
 
     assert len(recorder.spans) == 1
 
-    assert recorder.spans[0].tags['url'] == 'http://localhost/'
-    assert recorder.spans[0].tags['method'] == 'GET'
-    assert recorder.spans[0].tags['status_code'] == '200'
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost/'
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == '200'
+
+
+@pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
+def test_trace_flask_operation_name(monkeypatch):
+    app = get_flask_app()
+    recorder = get_recorder()
+
+    trace_flask(app, operation_name=lambda *a, **kw: 'operation_name')
+
+    with app.app_context():
+        client = app.test_client()
+
+        r = client.get('/')
+        assert b'Hello Test' in r.data
+
+    assert len(recorder.spans) == 1
+
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost/'
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == '200'
+
+    assert recorder.spans[0].operation_name == 'operation_name'
 
 
 @pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
@@ -81,9 +105,10 @@ def test_trace_flask_mask_url(monkeypatch):
 
     assert len(recorder.spans) == 1
 
-    assert recorder.spans[0].tags['url'] == 'http://localhost/??/?token=%3F'
-    assert recorder.spans[0].tags['method'] == 'GET'
-    assert recorder.spans[0].tags['status_code'] == '200'
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost/??/?token=%3F'
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == '200'
 
 
 @pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
@@ -113,9 +138,10 @@ def test_trace_flask_propagate(monkeypatch):
     assert recorder.spans[0].context.trace_id == propagated_span.context.trace_id
     assert recorder.spans[0].parent_id == propagated_span.context.span_id
 
-    assert recorder.spans[0].tags['url'] == 'http://localhost/'
-    assert recorder.spans[0].tags['method'] == 'GET'
-    assert recorder.spans[0].tags['status_code'] == '200'
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost/'
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == '200'
 
     extract.assert_called_once()
 
@@ -148,7 +174,7 @@ def test_trace_flask_span_set_tag_error(monkeypatch):
     # recorder = get_recorder()
 
     def set_tag(k, v):
-        if k != ot_tags.SPAN_KIND:
+        if k not in (ot_tags.SPAN_KIND, ot_tags.COMPONENT):
             raise RuntimeError
 
     span_mock = MagicMock()
@@ -190,9 +216,10 @@ def test_trace_flask_error(monkeypatch, error_code):
     assert len(recorder.spans) == 1
 
     assert 'error' in recorder.spans[0].tags
-    assert recorder.spans[0].tags['url'] == 'http://localhost{}'.format(url)
-    assert recorder.spans[0].tags['method'] == 'GET'
-    assert recorder.spans[0].tags['status_code'] == str(error_code)
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost{}'.format(url)
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == str(error_code)
 
 
 @pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
@@ -210,9 +237,10 @@ def test_trace_flask_default_tags(monkeypatch):
 
     assert len(recorder.spans) == 1
 
-    assert recorder.spans[0].tags['url'] == 'http://localhost/'
-    assert recorder.spans[0].tags['method'] == 'GET'
-    assert recorder.spans[0].tags['status_code'] == '200'
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost/'
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == '200'
     assert recorder.spans[0].tags['tag-1'] == 'value-1'
 
 
@@ -257,9 +285,10 @@ def test_trace_flask_no_4xx_error(monkeypatch, error_code):
     if error_code >= 500:
         assert 'error' in recorder.spans[0].tags
 
-    assert recorder.spans[0].tags['url'] == 'http://localhost{}'.format(url)
-    assert recorder.spans[0].tags['method'] == 'GET'
-    assert recorder.spans[0].tags['status_code'] == str(error_code)
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost{}'.format(url)
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == str(error_code)
 
 
 @pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
@@ -303,3 +332,28 @@ def test_extract_span_from_request(monkeypatch):
 @pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
 def test_extract_span_from_request_failed(monkeypatch):
     assert extract_span_from_flask_request() is None
+
+
+@pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
+def test_trace_flask_not_found(monkeypatch):
+    app = get_flask_app()
+    recorder = get_recorder()
+
+    trace_flask(app)
+
+    url = '/unknown/resource/'
+
+    with app.app_context():
+        client = app.test_client()
+
+        client.get(url)
+
+    assert len(recorder.spans) == 1
+
+    assert 'error' in recorder.spans[0].tags
+
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost{}'.format(url)
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == str(404)
+    assert recorder.spans[0].operation_name == 'unknown_resource'

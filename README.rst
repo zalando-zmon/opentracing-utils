@@ -12,6 +12,15 @@ OPENTRACING PYTHON UTILS
 .. image:: https://codecov.io/gh/zalando-zmon/opentracing-utils/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/zalando-zmon/opentracing-utils
   :alt: Code coverage
+
+.. image:: https://img.shields.io/pypi/v/opentracing-utils.svg
+   :target: https://pypi.python.org/pypi/opentracing-utils/
+   :alt: Latest PyPI version
+
+.. image:: https://img.shields.io/pypi/l/opentracing-utils.svg
+   :target: https://pypi.python.org/pypi/opentracing-utils/
+   :alt: License
+
 .. image:: https://img.shields.io/badge/OpenTracing-enabled-blue.svg
    :target: http://opentracing.io
    :alt: OpenTracing enabled
@@ -34,7 +43,7 @@ Features
 
     * Flask (via ``trace_flask()``)
     * Requests (via ``trace_requests()``)
-    * TODO ...
+    * SQLAlchemy (via ``trace_sqlalchemy()``)
 
 Install
 =======
@@ -43,7 +52,7 @@ Using pip (not released yet to PyPi)
 
 .. code-block:: bash
 
-    pip install -U -e git+ssh://git@github.com/zalando-zmon/opentracing-utils.git#egg=opentracing_utils
+    pip install -U opentracing-utils
 
 
 or by cloning the repo
@@ -397,6 +406,29 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
         with span:
             # Following call will be traced as a ``child span`` and propagated via HTTP headers.
             requests.get('https://example.org')
+
+
+SQLAlchemy
+^^^^^^^^^^
+
+For tracing `SQLAlchemy <https://docs.sqlalchemy.org/en/latest/>`_ client library for all SQL queries.
+
+.. code-block:: python
+
+    # trace_sqlalchemy can be used to trace all SQL queries.
+    # By default, span operation_name will be deduced from the query statement (e.g. select, update, delete).
+    from opentracing_utils import trace_sqlalchemy
+    trace_sqlalchemy()
+
+    # You can customize the span operation_name via supplying a callable
+    def get_sqlalchemy_span_op_name(conn, cursor, statement, parameters, context, executemany):
+        # inspect statement and parameters etc...
+        return 'custom_operation_name'
+    # trace_sqlalchemy(operation_name=get_sqlalchemy_span_op_name)
+
+    # By default, trace_sqlalchemy will not set error tags for SQL errors/exceptions. You can change that via ``set_error_tag`` param.
+    # trace_sqlalchemy(set_error_tag=True)
+
 
 License
 =======

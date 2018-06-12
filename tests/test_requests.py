@@ -16,6 +16,7 @@ from basictracer import BasicTracer
 from .conftest import Recorder
 from opentracing_utils import trace
 from opentracing_utils.common import sanitize_url
+from opentracing_utils.libs._requests import OPERATION_NAME_PREFIX
 
 
 URL = 'http://example.com/'
@@ -84,9 +85,38 @@ def test_trace_requests(monkeypatch, status_code):
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] is None
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
     if status_code >= 400:
         assert recorder.spans[0].tags['error'] is True
+
+
+@pytest.mark.parametrize('timeout', (None, 5, (1, 10)))
+def test_trace_requests_timeout(monkeypatch, timeout):
+    resp = Response()
+    resp.status_code = 200
+    resp.url = URL
+
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
+
+    recorder = Recorder()
+    t = BasicTracer(recorder=recorder)
+    t.register_required_propagators()
+    opentracing.tracer = t
+
+    response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE}, timeout=timeout)
+
+    assert response.status_code == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_URL] == URL
+    assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] == timeout
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
 
 def test_trace_requests_with_ignore_url_pattern(monkeypatch):
@@ -96,10 +126,8 @@ def test_trace_requests_with_ignore_url_pattern(monkeypatch):
 
     trace_requests(ignore_url_patterns=[r".*{}.*".format(URL)])
 
-    monkeypatch.setattr(
-       'opentracing_utils.libs._requests.__requests_http_send',
-       assert_send_request_mock_no_traces(resp)
-    )
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send',
+                        assert_send_request_mock_no_traces(resp))
 
     response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
     assert response.status_code == resp.status_code
@@ -112,10 +140,7 @@ def test_trace_requests_do_not_ignore_if_no_match(monkeypatch):
 
     trace_requests(ignore_url_patterns=[r".*{}.*".format(URL)])
 
-    monkeypatch.setattr(
-       'opentracing_utils.libs._requests.__requests_http_send',
-       assert_send_request_mock(resp)
-    )
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
 
     response = requests.get("http://I-do-not-match.com", headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
     assert response.status_code == resp.status_code
@@ -130,10 +155,8 @@ def test_trace_requests_with_ignore_url_pattern_prune_kwargs(monkeypatch):
 
     trace_requests(ignore_url_patterns=[r".*{}.*".format(URL)])
 
-    monkeypatch.setattr(
-       'opentracing_utils.libs._requests.__requests_http_send',
-       assert_send_request_mock_no_traces(resp)
-    )
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send',
+                        assert_send_request_mock_no_traces(resp))
 
     @trace()
     def f1():
@@ -201,6 +224,9 @@ def test_trace_requests_with_tags(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] is None
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
     assert recorder.spans[0].tags['tag1'] == 'value1'
 
 
@@ -234,6 +260,9 @@ def test_trace_requests_no_error_tag(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] is None
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
     assert 'error' not in recorder.spans[0].tags
 
 
@@ -269,6 +298,9 @@ def test_trace_requests_session(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] is None
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
 
 def test_trace_requests_nested(monkeypatch):
@@ -312,6 +344,9 @@ def test_trace_requests_nested(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] is None
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
 
 def test_trace_requests_no_propagators(monkeypatch):
@@ -350,6 +385,9 @@ def test_trace_requests_no_propagators(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] is None
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
     logger.error.assert_called_once()
 
@@ -377,6 +415,9 @@ def test_trace_requests_no_parent_span(monkeypatch):
     assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
     assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] is None
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
 
     assert response.status_code == resp.status_code
 
