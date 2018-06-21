@@ -374,7 +374,7 @@ For tracing `Flask <http://flask.pocoo.org>`_ applications. This utility functio
     def skip_health_checks(request):
         return request.path == '/health'
 
-    # trace_requests(skip_span=skip_health_checks)
+    # trace_flask(skip_span=skip_health_checks)
 
 
 
