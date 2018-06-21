@@ -10,7 +10,7 @@ from opentracing.ext import tags as ot_tags
 from opentracing_utils.span import get_parent_span
 
 
-def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=False):
+def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=False, skip_span=None):
     """
     Trace Sqlalchemy database queries.
 
@@ -24,10 +24,17 @@ def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=Fal
 
     :param set_error_tag: Database query span will set error tag in case of any exceptions. Default is False.
     :type set_error_tag: bool
+
+    :param skip_span: Callable to determine whether to skip this SQL query(ies) spans. If returned ``True`` then span
+                      will be skipped.
+    :type skip_span: Callable[conn, cursor, statement, parameters, context, executemany]
     """
 
     @listens_for(Engine, 'before_cursor_execute')
     def trace_before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        if callable(skip_span) and skip_span(conn, cursor, statement, parameters, context, executemany):
+            return
+
         if callable(span_extractor):
             parent_span = span_extractor(conn, cursor, statement, parameters, context, executemany)
         else:

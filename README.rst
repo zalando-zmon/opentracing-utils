@@ -370,6 +370,13 @@ For tracing `Flask <http://flask.pocoo.org>`_ applications. This utility functio
 
         current_span.set_tag('internal', True)
 
+    # You can skip requests spans.
+    def skip_health_checks(request):
+        return request.path == '/health'
+
+    # trace_flask(skip_span=skip_health_checks)
+
+
 
 Requests
 ^^^^^^^^
@@ -407,7 +414,6 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
             # Following call will be traced as a ``child span`` and propagated via HTTP headers.
             requests.get('https://example.org')
 
-
 SQLAlchemy
 ^^^^^^^^^^
 
@@ -428,6 +434,12 @@ For tracing `SQLAlchemy <https://docs.sqlalchemy.org/en/latest/>`_ client librar
 
     # By default, trace_sqlalchemy will not set error tags for SQL errors/exceptions. You can change that via ``set_error_tag`` param.
     # trace_sqlalchemy(set_error_tag=True)
+
+    # you can skip spans for certain SQL queries.
+    def skip_inserts(conn, cursor, statement, parameters, context, executemany):
+        return statement.lower().startswith('insert')
+
+    # trace_sqlalchemy(skip_span=skip_inserts)
 
 
 License

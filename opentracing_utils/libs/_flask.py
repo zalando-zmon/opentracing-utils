@@ -19,7 +19,8 @@ DEFUALT_RESPONSE_ATTRIBUTES = ('status_code',)
 
 
 def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFUALT_RESPONSE_ATTRIBUTES,
-                default_tags=None, error_on_4xx=True, mask_url_query=False, mask_url_path=False, operation_name=None):
+                default_tags=None, error_on_4xx=True, mask_url_query=False, mask_url_path=False, operation_name=None,
+                skip_span=None):
     """
     Add OpenTracing to Flask applications using ``before_request`` & ``after_request``.
 
@@ -51,16 +52,23 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
 
     :param operation_name: Callable that returns the operation name of the request span. Default is None.
     :type operation_name: Callable[*args, **kwargs]
+
+    :param skip_span: Callable to determine whether to skip this request span. If returned ``True`` then span
+                      will be skipped. This is useful for excluding certain endpoints, like health checks.
+    :type skip_span: Callable[*args, **kwargs]
     """
 
     min_error_code = 400 if error_on_4xx else 500
 
     @app.before_request
     def trace_request():
+        if callable(skip_span) and skip_span(request):
+            return
+
         op_name = request.endpoint if request.endpoint else request.path.strip('/').replace('/', '_')
 
         if callable(operation_name):
-            op_name = operation_name()
+            op_name = operation_name() or op_name
 
         span = None
         headers_carrier = dict(request.headers.items())
