@@ -1,10 +1,13 @@
 import opentracing
 import pytest
+import ctypes
 
+from sqlalchemy import event
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.engine import Engine
 from sqlalchemy import Column, Integer, String, Boolean
 
 from basictracer import BasicTracer
@@ -14,8 +17,6 @@ from .conftest import Recorder
 from opentracing_utils import trace
 from opentracing_utils.libs._sqlalchemy import trace_sqlalchemy
 
-# Actual tracing here!
-trace_sqlalchemy()
 
 Base = declarative_base()
 
@@ -26,6 +27,22 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     is_active = Column(Boolean)
+
+
+def untrace_sqlalchemy():
+    try:
+        args = []
+        for key in event.registry._key_to_collection:
+            identifier = key[1]
+            if identifier not in ('before_cursor_execute', 'after_cursor_execute', 'handle_error'):
+                continue
+            fn = ctypes.cast(key[2], ctypes.py_object).value
+            args.append([identifier, fn])
+
+        for arg in args:
+            event.remove(Engine, *arg)
+    except Exception:
+        pass
 
 
 def assert_sqlalchemy_span(span, operation_name='select'):
@@ -40,17 +57,21 @@ def assert_sqlalchemy_span(span, operation_name='select'):
 def session():
     engine = create_engine('sqlite://')
     User.metadata.create_all(engine)
-    return sessionmaker(bind=engine)()
+    yield sessionmaker(bind=engine)()
+    untrace_sqlalchemy()
 
 
 @pytest.fixture
 def recorder():
     recorder = Recorder()
+    recorder.spans = []
     opentracing.tracer = BasicTracer(recorder=recorder)
-    return recorder
+    yield recorder
+    del(recorder)
 
 
 def test_trace_sqlalchemy(monkeypatch, session, recorder):
+    trace_sqlalchemy()
 
     top_span = opentracing.tracer.start_span(operation_name='top_span')
 
@@ -70,11 +91,13 @@ def test_trace_sqlalchemy(monkeypatch, session, recorder):
 
 
 def test_trace_sqlalchemy_nested(monkeypatch, session, recorder):
+    trace_sqlalchemy()
+
     top_span = opentracing.tracer.start_span(operation_name='top_span')
 
     @trace()
     def create_user():
-        user = User(name='Tracer', is_active=True)
+        user = User(name='Tracer')
         session.add(user)
         session.commit()
 
@@ -92,6 +115,8 @@ def test_trace_sqlalchemy_nested(monkeypatch, session, recorder):
 
 
 def test_trace_sqlalchemy_select(monkeypatch, session, recorder):
+    trace_sqlalchemy()
+
     user = User(name='Tracer', is_active=True)
     session.add(user)
     session.commit()
@@ -112,6 +137,8 @@ def test_trace_sqlalchemy_select(monkeypatch, session, recorder):
 
 
 def test_trace_sqlalchemy_update(monkeypatch, session, recorder):
+    trace_sqlalchemy()
+
     user = User(name='Tracer', is_active=True)
     session.add(user)
     session.commit()
@@ -133,6 +160,8 @@ def test_trace_sqlalchemy_update(monkeypatch, session, recorder):
 
 
 def test_trace_sqlalchemy_delete(monkeypatch, session, recorder):
+    trace_sqlalchemy()
+
     user = User(name='Tracer', is_active=True)
     session.add(user)
     session.commit()
@@ -153,6 +182,8 @@ def test_trace_sqlalchemy_delete(monkeypatch, session, recorder):
 
 
 def test_trace_sqlalchemy_select_where(monkeypatch, session, recorder):
+    trace_sqlalchemy()
+
     user = User(name='Tracer', is_active=True)
     session.add(user)
     session.commit()
@@ -228,3 +259,20 @@ def test_trace_sqlalchemy_span_extractor(monkeypatch, session, recorder):
 
     custom_span.finish()
     ignored_span.finish()
+
+
+def test_trace_sqlalchemy_skip_span(monkeypatch, session, recorder):
+
+    def skip_span(conn, cursor, statement, parameters, context, executemany):
+        return statement.lower().startswith('insert')
+
+    trace_sqlalchemy(skip_span=skip_span)
+
+    user = User(name='Tracer', is_active=True)
+    session.add(user)
+    session.commit()
+
+    session.query(User).first()
+
+    assert len(recorder.spans) == 1
+    assert recorder.spans[0].operation_name != 'insert'

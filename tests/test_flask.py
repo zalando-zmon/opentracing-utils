@@ -91,6 +91,29 @@ def test_trace_flask_operation_name(monkeypatch):
 
 
 @pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
+def test_trace_flask_operation_name_none(monkeypatch):
+    app = get_flask_app()
+    recorder = get_recorder()
+
+    trace_flask(app, operation_name=lambda *a, **kw: None)
+
+    with app.app_context():
+        client = app.test_client()
+
+        r = client.get('/')
+        assert b'Hello Test' in r.data
+
+    assert len(recorder.spans) == 1
+
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost/'
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == '200'
+
+    assert recorder.spans[0].operation_name == 'root'
+
+
+@pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
 def test_trace_flask_mask_url(monkeypatch):
     app = get_flask_app()
     recorder = get_recorder()
@@ -357,3 +380,30 @@ def test_trace_flask_not_found(monkeypatch):
     assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
     assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == str(404)
     assert recorder.spans[0].operation_name == 'unknown_resource'
+
+
+@pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
+def test_trace_flask_skip_span(monkeypatch):
+    app = get_flask_app()
+    recorder = get_recorder()
+
+    def skip_span(request, **kwargs):
+        return request.url == 'http://localhost/health'
+
+    trace_flask(app, skip_span=skip_span)
+
+    url = '/'
+
+    with app.app_context():
+        client = app.test_client()
+
+        client.get(url)
+        client.get('/health')
+
+    assert len(recorder.spans) == 1
+
+    assert recorder.spans[0].tags[ot_tags.COMPONENT] == 'flask'
+    assert recorder.spans[0].tags[ot_tags.HTTP_URL] == 'http://localhost{}'.format(url)
+    assert recorder.spans[0].tags[ot_tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[ot_tags.HTTP_STATUS_CODE] == str(200)
+    assert recorder.spans[0].operation_name == 'root'
