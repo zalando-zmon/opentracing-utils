@@ -65,11 +65,12 @@ def test_init_lightstep(monkeypatch):
 
     monkeypatch.setattr('lightstep.Tracer', tracer)
 
-    init_opentracing_tracer(OPENTRACING_LIGHTSTEP, component_name='test_lightstep', verbosity=2, tags='foo=bar;baz=foo')
+    init_opentracing_tracer(OPENTRACING_LIGHTSTEP, component_name='test_lightstep', verbosity=2,
+                            global_tags='foo=bar;baz=foo', tags={'bar': 'baz'})
 
     tracer.assert_called_once_with(
         component_name='test_lightstep', access_token=None, collector_host='collector.lightstep.com',
-        collector_port=443, verbosity=2, tags={'foo': 'bar', 'baz': 'foo'})
+        collector_port=443, verbosity=2, tags={'foo': 'bar', 'baz': 'foo', 'bar': 'baz'})
 
 
 def test_init_lightstep_env_vars(monkeypatch):

@@ -49,7 +49,7 @@ def init_opentracing_tracer(tracer, **kwargs):
         verbosity = kwargs.pop(
             'verbosity',
             int(os.environ.get('OPENTRACING_LIGHTSTEP_VERBOSITY', 0)))
-        global_tags = kwargs.pop('tags', os.environ.get('OPENTRACING_LIGHTSTEP_TAGS', None))
+        global_tags = kwargs.pop('global_tags', os.environ.get('OPENTRACING_LIGHTSTEP_TAGS', None))
 
         if not access_token:
             logger.warn('Initializing LighStep tracer with no access_token!')
@@ -60,6 +60,8 @@ def init_opentracing_tracer(tracer, **kwargs):
                 k, v = t.split("=", 1)
                 if k and v:
                     gtags[k] = v
+        if kwargs.get('tags', None):
+            gtags.update(**kwargs.pop('tags'))
 
         opentracing.tracer = lightstep.Tracer(
             component_name=component_name, access_token=access_token, collector_host=collector_host,
