@@ -49,13 +49,21 @@ def init_opentracing_tracer(tracer, **kwargs):
         verbosity = kwargs.pop(
             'verbosity',
             int(os.environ.get('OPENTRACING_LIGHTSTEP_VERBOSITY', 0)))
+        global_tags = kwargs.pop('tags', os.environ.get('OPENTRACING_LIGHTSTEP_TAGS', None))
 
         if not access_token:
             logger.warn('Initializing LighStep tracer with no access_token!')
 
+        gtags = {}
+        if global_tags:
+            for t in global_tags.split(";"):
+                k, v = t.split("=", 1)
+                if k and v:
+                    gtags[k] = v
+
         opentracing.tracer = lightstep.Tracer(
             component_name=component_name, access_token=access_token, collector_host=collector_host,
-            collector_port=collector_port, verbosity=verbosity, **kwargs)
+            collector_port=collector_port, verbosity=verbosity, tags=gtags, **kwargs)
     elif tracer == OPENTRACING_JAEGER:
         from jaeger_client import Config
 
