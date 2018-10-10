@@ -21,15 +21,7 @@ def init_opentracing_tracer(tracer, **kwargs):
 
         opentracing.tracer = BasicTracer(recorder=recorder, sampler=sampler)
     elif tracer == OPENTRACING_INSTANA:
-        import instana.options as InstanaOpts
-        import instana.tracer  # noqa
-
-        service = kwargs.pop(
-            'service',
-            os.environ.get('OPENTRACING_INSTANA_SERVICE'))
-        log_level = kwargs.pop('log_level', logging.INFO)
-
-        instana.tracer.init(InstanaOpts.Options(service=service, log_level=log_level, **kwargs))
+        import instana  # noqa
     elif tracer == OPENTRACING_LIGHTSTEP:
         import lightstep
 

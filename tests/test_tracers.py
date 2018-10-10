@@ -1,5 +1,3 @@
-import logging
-
 import six
 import pytest
 import opentracing
@@ -33,31 +31,7 @@ def test_init_basic():
 
 
 def test_init_instana(monkeypatch):
-    init = MagicMock()
-    opts = MagicMock()
-
-    monkeypatch.setattr('instana.tracer.init', init)
-    monkeypatch.setattr('instana.options', opts)
-
-    init_opentracing_tracer(OPENTRACING_INSTANA, log_level=logging.DEBUG, service=SERVICE_NAME)
-
-    opts.Options.assert_called_once_with(service=SERVICE_NAME, log_level=logging.DEBUG)
-    init.assert_called_once()
-
-
-def test_init_instana_env_vars(monkeypatch):
-    init = MagicMock()
-    opts = MagicMock()
-
-    monkeypatch.setattr('instana.tracer.init', init)
-    monkeypatch.setattr('instana.options', opts)
-
-    monkeypatch.setenv('OPENTRACING_INSTANA_SERVICE', 'service')
-
-    init_opentracing_tracer(OPENTRACING_INSTANA, log_level=logging.DEBUG, service=SERVICE_NAME)
-
-    opts.Options.assert_called_once_with(service='service', log_level=logging.DEBUG)
-    init.assert_called_once()
+    init_opentracing_tracer(OPENTRACING_INSTANA)
 
 
 def test_init_lightstep(monkeypatch):
