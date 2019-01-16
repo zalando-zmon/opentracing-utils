@@ -58,3 +58,5 @@ def init_opentracing_tracer(tracer, **kwargs):
         opentracing.tracer = jaeger_config.initialize_tracer()
     else:
         opentracing.tracer = opentracing.Tracer()
+
+    return opentracing.tracer

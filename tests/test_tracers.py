@@ -16,9 +16,10 @@ SERVICE_NAME = 'service'
 
 
 def test_init_noop():
-    init_opentracing_tracer(None)
+    t = init_opentracing_tracer(None)
 
     assert isinstance(opentracing.tracer, opentracing.Tracer)
+    assert t == opentracing.tracer
 
 
 def test_init_basic():
