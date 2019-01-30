@@ -7,17 +7,16 @@ https://github.com/opentracing-contrib/python-django [BSD 3-Clause]
 import traceback
 import opentracing
 
-from django.conf import settings
-
 try:
+    from django.conf import settings
     from django.utils.deprecation import MiddlewareMixin
+    try:
+        from django.utils.module_loading import import_string
+    except ImportError:  # pragma: no cover
+        from django.utils.module_loading import import_by_path as import_string
 except ImportError:  # pragma: no cover
-    MiddlewareMixin = object  # pragma: no cover
-
-try:
-    from django.utils.module_loading import import_string
-except ImportError:  # pragma: no cover
-    from django.utils.module_loading import import_by_path as import_string  # pragma: no cover
+    MiddlewareMixin = object
+    settings = None
 
 from opentracing.ext import tags as ot_tags
 
