@@ -41,7 +41,7 @@ Features
 * Support **gevent**.
 * Ability to add OpenTracing support to external libs/frameworks/clients:
 
-    * Django (via ``OpenTracingHttpMiddlware``)
+    * Django (via ``OpenTracingHttpMiddleware``)
     * Flask (via ``trace_flask()``)
     * Requests (via ``trace_requests()``)
     * SQLAlchemy (via ``trace_sqlalchemy()``)
