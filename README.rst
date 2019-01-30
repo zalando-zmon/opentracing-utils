@@ -41,6 +41,7 @@ Features
 * Support **gevent**.
 * Ability to add OpenTracing support to external libs/frameworks/clients:
 
+    * Django (via ``OpenTracingHttpMiddlware``)
     * Flask (via ``trace_flask()``)
     * Requests (via ``trace_requests()``)
     * SQLAlchemy (via ``trace_sqlalchemy()``)
@@ -346,6 +347,65 @@ Using generators could get tricky and leads to invalid parent span inspection. I
 
 External libraries and clients
 ------------------------------
+
+Django
+^^^^^^
+
+For tracing `Django <https://www.djangoproject.com/>`_ applications. You can use the following:
+
+- ``OpenTracingHttpMiddleware``: for tracing incoming HTTP requests
+
+.. code-block:: python
+
+    # In settings.py or equivalent Django config
+    from opentracing_utils import init_opentracing_tracer
+    init_opentracing_tracer(YOUR_TRACER)  # make sure opentracing.tracer is initialized properly.
+
+    MIDDLEWARE = (
+    'opentracing_utils.OpenTracingHttpMiddleware',  # goes first in the list
+    # ... more middlewares here
+    )
+
+    # Further options
+
+    # Add default tags to all incoming HTTP requests spans
+    OPENTRACING_UTILS_DEFAULT_TAGS = {'my-default-tag': 'tag-value'}
+
+    # Add error tag on 4XX responses (default is ``True``)
+    OPENTRACING_UTILS_ERROR_4XX = False
+
+    # Override span operation_name (default is ``view_func.__name__``)
+    OPENTRACING_UTILS_OPERATION_NAME_CALLABLE = 'my_app.utils.span_operation_name'
+
+    # Exclude certain requests from OpenTracing
+    OPENTRACING_UTILS_SKIP_SPAN_CALLABLE = 'my_app.utils.skip_span'
+
+
+Here are the callables examples for overriding span operation names and skipping spans:
+
+.. code-block:: python
+
+    # my_app/utils.py
+    def span_operation_name(request, view_func, view_args, view_kwargs):
+        return 'edge_{}'.format(view_func.__name__)
+
+    def skip_span(request, view_func, view_args, view_kwargs):
+        if view_func.__name__.startswith('no_trace_'):
+            return True
+        return False
+
+In order to follow traces in your views, you can use ``extract_span_from_django_request`` utility function.
+
+.. code-block:: python
+
+    # my_app/views.py
+
+    from opentracing_utils import trace, extract_span_from_django_request
+
+    @trace(span_extractor=extract_span_from_django_request, operation_name='custom_view')
+    def my_traced_view(request):
+        ...
+
 
 Flask
 ^^^^^
