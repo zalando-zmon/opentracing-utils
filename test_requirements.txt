@@ -1,4 +1,5 @@
 basictracer
+Django
 flask
 mock==2.0.0
 opentracing

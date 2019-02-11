@@ -10,15 +10,18 @@ from opentracing_utils.span import extract_span_from_kwargs, remove_span_from_kw
 from opentracing_utils.libs._requests import trace_requests, sanitize_url
 from opentracing_utils.libs._flask import trace_flask, extract_span_from_flask_request
 from opentracing_utils.libs._sqlalchemy import trace_sqlalchemy
+from opentracing_utils.libs._django import OpenTracingHttpMiddleware, extract_span_from_django_request
 
 
 __version__ = get_distribution('opentracing-utils').version
 
 
 __all__ = (
+    'extract_span_from_django_request',
     'extract_span_from_flask_request',
     'extract_span_from_kwargs',
     'init_opentracing_tracer',
+    'OpenTracingHttpMiddleware',
     'remove_span_from_kwargs',
     'sanitize_url',
     'trace',
