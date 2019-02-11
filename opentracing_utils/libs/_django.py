@@ -10,13 +10,14 @@ import opentracing
 try:
     from django.conf import settings
     from django.utils.deprecation import MiddlewareMixin
-    try:
-        from django.utils.module_loading import import_string
-    except ImportError:  # pragma: no cover
-        from django.utils.module_loading import import_by_path as import_string
 except ImportError:  # pragma: no cover
     MiddlewareMixin = object
     settings = None
+
+try:
+    from django.utils.module_loading import import_string
+except ImportError:  # pragma: no cover
+    from django.utils.module_loading import import_by_path as import_string
 
 from opentracing.ext import tags as ot_tags
 
@@ -25,7 +26,7 @@ from opentracing_utils.common import sanitize_url
 
 class OpenTracingHttpMiddleware(MiddlewareMixin):
 
-    def __init__(self, get_response):
+    def __init__(self, get_response=None):
         self.get_response = get_response
 
         self._default_tags = getattr(settings, 'OPENTRACING_UTILS_DEFAULT_TAGS', {})
