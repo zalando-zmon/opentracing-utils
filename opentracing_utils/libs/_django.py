@@ -17,7 +17,10 @@ except ImportError:  # pragma: no cover
 try:
     from django.utils.module_loading import import_string
 except ImportError:  # pragma: no cover
-    from django.utils.module_loading import import_by_path as import_string
+    try:
+        from django.utils.module_loading import import_by_path as import_string
+    except ImportError:  # pragma: no cover
+        pass
 
 from opentracing.ext import tags as ot_tags
 
