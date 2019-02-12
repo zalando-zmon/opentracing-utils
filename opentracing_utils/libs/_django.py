@@ -37,10 +37,16 @@ class OpenTracingHttpMiddleware(MiddlewareMixin):
         self._min_error_code = 400 if error_4xx else 500
 
         op_name_str = getattr(settings, 'OPENTRACING_UTILS_OPERATION_NAME_CALLABLE', '')
-        self._op_name_callable = import_string(op_name_str) if op_name_str else None
+        if callable(op_name_str):
+            self._op_name_callable = op_name_str
+        else:
+            self._op_name_callable = import_string(op_name_str) if op_name_str else None
 
         skip_span_str = getattr(settings, 'OPENTRACING_UTILS_SKIP_SPAN_CALLABLE', '')
-        self._skip_span_callable = import_string(skip_span_str) if skip_span_str else None
+        if callable(skip_span_str):
+            self._skip_span_callable = skip_span_str
+        else:
+            self._skip_span_callable = import_string(skip_span_str) if skip_span_str else None
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if self._skip_span_callable and self._skip_span_callable(request, view_func, view_args, view_kwargs):
