@@ -113,10 +113,11 @@ def test_request_error(client):
 
 
 @pytest.mark.skipif(six.PY2, reason='')
-def test_request_skip_span(client, settings):
+@pytest.mark.parametrize('op_name', ('tests.test_django.test_django_middleware.skip_span', skip_span))
+def test_request_skip_span(client, settings, op_name):
     recorder = get_recorder()
 
-    settings.OPENTRACING_UTILS_SKIP_SPAN_CALLABLE = 'tests.test_django.test_django_middleware.skip_span'
+    settings.OPENTRACING_UTILS_SKIP_SPAN_CALLABLE = op_name
 
     response = client.get('/')
     assert response.content == b'TRACED'
@@ -136,10 +137,11 @@ def test_request_skip_span(client, settings):
 
 
 @pytest.mark.skipif(six.PY2, reason='')
-def test_request_operation_name(client, settings):
+@pytest.mark.parametrize('op_name', ('tests.test_django.test_django_middleware.operation_name', operation_name))
+def test_request_operation_name(client, settings, op_name):
     recorder = get_recorder()
 
-    settings.OPENTRACING_UTILS_OPERATION_NAME_CALLABLE = 'tests.test_django.test_django_middleware.operation_name'
+    settings.OPENTRACING_UTILS_OPERATION_NAME_CALLABLE = op_name
 
     response = client.get('/user')
     assert response.content == b'USER'
