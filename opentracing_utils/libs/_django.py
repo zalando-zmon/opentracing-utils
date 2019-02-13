@@ -8,12 +8,14 @@ import logging
 import traceback
 import opentracing
 
+
+settings = None  # noqa
+
 try:
     from django.conf import settings
     from django.utils.deprecation import MiddlewareMixin
 except ImportError:  # pragma: no cover
     MiddlewareMixin = object
-    settings = None
 
 try:
     from django.utils.module_loading import import_string
