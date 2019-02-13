@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 class OpenTracingHttpMiddleware(MiddlewareMixin):
 
     def __init__(self, get_response=None):
+        print('#############OPENTRACING##################')
+        print('INITIALIZING MIDDLEWARE')
         self.get_response = get_response
 
         self._default_tags = getattr(settings, 'OPENTRACING_UTILS_DEFAULT_TAGS', {})
@@ -45,6 +47,7 @@ class OpenTracingHttpMiddleware(MiddlewareMixin):
 
         op_name_str = getattr(settings, 'OPENTRACING_UTILS_OPERATION_NAME_CALLABLE', '')
         logger.info(op_name_str)
+        print(op_name_str)
         if callable(op_name_str):
             self._op_name_callable = op_name_str
         else:
@@ -52,6 +55,7 @@ class OpenTracingHttpMiddleware(MiddlewareMixin):
 
         skip_span_str = getattr(settings, 'OPENTRACING_UTILS_SKIP_SPAN_CALLABLE', '')
         logger.info(skip_span_str)
+        print(skip_span_str)
         if callable(skip_span_str):
             self._skip_span_callable = skip_span_str
         else:
@@ -59,6 +63,9 @@ class OpenTracingHttpMiddleware(MiddlewareMixin):
 
         logger.info(self._op_name_callable)
         logger.info(self._skip_span_callable)
+
+        print(self._op_name_callable)
+        print(self._skip_span_callable)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if self._skip_span_callable and self._skip_span_callable(request, view_func, view_args, view_kwargs):
