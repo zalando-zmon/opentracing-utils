@@ -43,7 +43,7 @@ def init_opentracing_tracer(tracer, **kwargs):
             int(os.environ.get('OPENTRACING_LIGHTSTEP_VERBOSITY', 0)))
 
         if not access_token:
-            logger.warning('Initializing LighStep tracer with no access_token!')
+            logger.warning('Initializing LightStep tracer with no access_token!')
 
         opentracing.tracer = lightstep.Tracer(
             component_name=component_name, access_token=access_token, collector_host=collector_host,
