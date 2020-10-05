@@ -44,7 +44,7 @@ def test_init_lightstep(monkeypatch):
 
     tracer.assert_called_once_with(
         component_name='test_lightstep', access_token=None, collector_host='collector.lightstep.com',
-        collector_port=443, opentracing_encryption="tls", verbosity=2)
+        collector_port=443, collector_encryption="tls", verbosity=2)
 
 
 def test_init_lightstep_env_vars(monkeypatch):
@@ -61,7 +61,7 @@ def test_init_lightstep_env_vars(monkeypatch):
 
     tracer.assert_called_once_with(
         component_name='component', access_token='1234', collector_host='tracer.example.org',
-        collector_port=8443, opentracing_encryption="tls", verbosity=1)
+        collector_port=8443, collector_encryption="tls", verbosity=1)
 
 
 def test_init_lightstep_plaintext(monkeypatch):
@@ -79,7 +79,7 @@ def test_init_lightstep_plaintext(monkeypatch):
 
     tracer.assert_called_once_with(
         component_name='component', access_token='1234', collector_host='tracer.example.org',
-        collector_port=8443, opentracing_encryption="none", verbosity=1)
+        collector_port=8443, collector_encryption="none", verbosity=1)
 
 
 @pytest.mark.skipif(six.PY3, reason='Jaeger does not support PY3')
