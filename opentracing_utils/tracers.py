@@ -48,13 +48,13 @@ def init_opentracing_tracer(tracer, **kwargs):
         if not access_token:
             logger.warning('Initializing LightStep tracer with no access_token!')
 
-        opentracing_encryption = "tls"
+        collector_encryption = "tls"
         if scheme == "http":
-            opentracing_encryption = "none"
+            collector_encryption = "none"
 
         opentracing.tracer = lightstep.Tracer(
             component_name=component_name, access_token=access_token, collector_host=collector_host,
-            collector_port=collector_port, opentracing_encryption=opentracing_encryption, verbosity=verbosity,
+            collector_port=collector_port, collector_encryption=collector_encryption, verbosity=verbosity,
             **kwargs)
     elif tracer == OPENTRACING_JAEGER:
         from jaeger_client import Config
