@@ -41,13 +41,21 @@ def init_opentracing_tracer(tracer, **kwargs):
         verbosity = kwargs.pop(
             'verbosity',
             int(os.environ.get('OPENTRACING_LIGHTSTEP_VERBOSITY', 0)))
+        scheme = kwargs.pop(
+            'collector_scheme',
+            os.environ.get('OPENTRACING_LIGHTSTEP_COLLECTOR_SCHEME', 'https'))
 
         if not access_token:
             logger.warning('Initializing LightStep tracer with no access_token!')
 
+        opentracing_encryption = "tls"
+        if scheme == "http":
+            opentracing_encryption = "none"
+
         opentracing.tracer = lightstep.Tracer(
             component_name=component_name, access_token=access_token, collector_host=collector_host,
-            collector_port=collector_port, verbosity=verbosity, **kwargs)
+            collector_port=collector_port, opentracing_encryption=opentracing_encryption, verbosity=verbosity,
+            **kwargs)
     elif tracer == OPENTRACING_JAEGER:
         from jaeger_client import Config
 
