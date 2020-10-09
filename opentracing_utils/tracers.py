@@ -51,6 +51,8 @@ def init_opentracing_tracer(tracer, **kwargs):
         collector_encryption = "tls"
         if scheme == "http":
             collector_encryption = "none"
+        if 'collector_encryption' in kwargs:
+            collector_encryption = kwargs.pop('collector_encryption', collector_encryption)
 
         opentracing.tracer = lightstep.Tracer(
             component_name=component_name, access_token=access_token, collector_host=collector_host,
