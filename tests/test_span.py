@@ -8,7 +8,10 @@ from opentracing.ext import tags as opentracing_tags
 from basictracer import BasicTracer
 
 
-from opentracing_utils.span import get_new_span, adjust_span, extract_span_from_kwargs, remove_span_from_kwargs, inspect_span_from_stack
+from opentracing_utils.span import (
+    get_new_span, adjust_span, extract_span_from_kwargs, remove_span_from_kwargs,
+    inspect_span_from_stack
+)
 from opentracing_utils.span import DEFAULT_SPAN_ARG_NAME
 
 import pytest
