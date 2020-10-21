@@ -78,6 +78,11 @@ def inspect_span_from_stack(depth=100):
 
         frame = frame.f_back
 
+    # delete reference cycle
+    # https://docs.python.org/3/library/inspect.html#the-interpreter-stack
+    del cframe
+    del frame
+
     return span
 
 
