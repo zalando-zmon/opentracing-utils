@@ -119,10 +119,12 @@ OPENTRACING_INSTANA_SERVICE
 
     # Now use the opentracing.tracer
     root_span = opentracing.tracer.start_span(operation_name='root_span')
+Dependency
+~~~~~~~~~~
+Add ``instana`` to the ``dependencies.txt`` of your project.
 
 Jaeger
 ^^^^^^
-
 Config Vars
 ~~~~~~~~~~~
 
@@ -149,7 +151,9 @@ OPENTRACING_JAEGER_SERVICE_NAME
 
     # Now use the opentracing.tracer
     root_span = opentracing.tracer.start_span(operation_name='root_span')
-
+Dependency
+~~~~~~~~~~
+Add ``jaeger_client`` to the ``dependencies.txt`` of your project.
 
 LightStep
 ^^^^^^^^^
@@ -187,7 +191,9 @@ OPENTRACING_LIGHTSTEP_VERBOSITY
 
     # Now use the opentracing.tracer
     root_span = opentracing.tracer.start_span(operation_name='root_span')
-
+Dependency
+~~~~~~~~~~
+Add ``lightstep`` to the ``dependencies.txt`` of your project.
 
 @trace decorator
 ----------------
