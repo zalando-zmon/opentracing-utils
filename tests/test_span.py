@@ -1,3 +1,5 @@
+import gc
+
 import opentracing
 
 from mock import MagicMock
@@ -6,8 +8,14 @@ from opentracing.ext import tags as opentracing_tags
 from basictracer import BasicTracer
 
 
-from opentracing_utils.span import get_new_span, adjust_span, extract_span_from_kwargs, remove_span_from_kwargs
+from opentracing_utils.span import (
+    get_new_span, adjust_span, extract_span_from_kwargs, remove_span_from_kwargs,
+    inspect_span_from_stack
+)
 from opentracing_utils.span import DEFAULT_SPAN_ARG_NAME
+
+import pytest
+import six
 
 
 def test_get_new_span():
@@ -87,3 +95,30 @@ def test_remove_span_from_kwargs(monkeypatch):
     clean_kwargs = remove_span_from_kwargs(**kwargs)
 
     assert clean_kwargs == {'not_span': 1, 'also_not_span': 'no span'}
+
+
+@pytest.mark.skipif(six.PY2, reason="gc.get_stats requires >=3.4")
+def test_inspect_span_from_stack_does_not_create_reference_cycle():
+    # inspect_span_from_stack inspects the stack via stack frames. This can
+    # very easily lead to the creation of reference cycles. These are not
+    # free-d using reference counting and therefore the GC needs to clean them
+    # up. If reference cycles are created frequently and therefore the GC runs
+    # frequently, this can have a significant impact on CPU usage and overall
+    # latency.
+    #
+    # This test makes sure that this function doesn't create a reference cycle
+    # by testing whether the GC is able to collect any objects after calling
+    # this function.
+
+    # Run a collection to ensure that all reference cycles that may have been
+    # created up to this point to be collected, so that they don't mess up our
+    # measurement.
+    gc.collect()
+
+    previous_stats = gc.get_stats()
+    inspect_span_from_stack()
+    gc.collect()
+    stats = gc.get_stats()
+
+    for previous_generation, current_generation in zip(previous_stats, stats):
+        assert previous_generation['collected'] == current_generation['collected']
