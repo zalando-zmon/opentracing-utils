@@ -40,7 +40,7 @@ if __name__ == '__main__':
         ],
         setup_requires=[
             'opentracing',
-            'pytest-runner',
+            'pytest-runner==5.2',
         ],
         test_suite='tests',
         tests_require=TEST_REQUIREMENTS,
