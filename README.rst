@@ -472,7 +472,7 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
     # undesireable so it's also possible to avoid tracing specific URL's or
     # endpoints. trace_requests accepts a list of regex patterns and matches the
     # request.url against these patterns, ignoring traces if any pattern matches.
-    # trace_requests(ignore_patterns=[r".*hostname/endpoint"]
+    # trace_requests(ignore_url_patterns=[r".*hostname/endpoint"])
 
     import requests
 
