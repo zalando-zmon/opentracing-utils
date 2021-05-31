@@ -17,10 +17,19 @@ def get_new_span(
         f, func_args, func_kwargs, operation_name=None, inspect_stack=True, ignore_parent_span=False,
         span_extractor=None, use_follows_from=False):
     parent_span = None
+    using_scope_manager = False
     span_arg_name = DEFAULT_SPAN_ARG_NAME
 
     if not ignore_parent_span:
-        if callable(span_extractor):
+        try:
+            # We try first with inspecting ``active_span`` managed by ``tracer.scope_manager``.
+            parent_span = opentracing.tracer.active_span
+            using_scope_manager = True if parent_span else False
+        except AttributeError:
+            # Old opentracing lib!
+            ...
+
+        if not parent_span and callable(span_extractor):
             try:
                 parent_span = span_extractor(*func_args, **func_kwargs)
             except Exception:
@@ -35,7 +44,11 @@ def get_new_span(
     if parent_span:
         references = [follows_from(parent_span.context)] if use_follows_from else [child_of(parent_span.context)]
 
-    return span_arg_name, opentracing.tracer.start_span(operation_name=op_name, references=references)
+    return (
+        span_arg_name,
+        using_scope_manager,
+        opentracing.tracer.start_span(operation_name=op_name, references=references)
+    )
 
 
 def adjust_span(span, operation_name, component, tags):

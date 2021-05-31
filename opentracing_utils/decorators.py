@@ -1,12 +1,22 @@
 import functools
 
+import opentracing
+
 from opentracing_utils.span import get_new_span, adjust_span, get_span_from_kwargs, remove_span_from_kwargs
 
 
 def trace(component=None, operation_name=None, tags=None, use_follows_from=False, pass_span=False, inspect_stack=True,
-          ignore_parent_span=False, span_extractor=None, skip_span=None):
+          ignore_parent_span=False, span_extractor=None, skip_span=None, use_scope_manager=False):
     """
     Opentracing tracer decorator. Attempts to extract parent span and create a new span for the decorated function.
+
+    The order of parent span inspection:
+
+    1. Using ``opentracing.tracer.active_span`` managed by the tracer context manager. The new span will be using the
+    scope manager.
+    2. Using ``span_extractor``.
+    3. Using call stack frames inspection.
+
 
     :param commponent: commponent name.
     :type commponent: str
@@ -40,6 +50,9 @@ def trace(component=None, operation_name=None, tags=None, use_follows_from=False
 
     :param skip_span: A callable which can be used to determine if the span should be skipped.
     :type skip_span: Callable[*args, **kwargs]
+
+    :param use_scope_manager: Always use the scope manager when starting the span.
+    :type use_scope_manager: bool
     """
 
     def trace_decorator(f):
@@ -50,7 +63,7 @@ def trace(component=None, operation_name=None, tags=None, use_follows_from=False
 
             # Get a new current span wrapping this traced function.
             # ``get_new_span`` should retrieve parent_span if any!
-            span_arg_name, current_span = get_new_span(
+            span_arg_name, using_scope_manager, current_span = get_new_span(
                 f, args, kwargs, inspect_stack=inspect_stack, ignore_parent_span=ignore_parent_span,
                 span_extractor=span_extractor, use_follows_from=use_follows_from)
 
@@ -65,9 +78,16 @@ def trace(component=None, operation_name=None, tags=None, use_follows_from=False
 
             current_span = adjust_span(current_span, operation_name, component, tags)
 
-            with current_span:
+            with _activate_span(current_span, using_scope_manager or use_scope_manager):
                 return f(*args, **kwargs)
 
         return wrapper
 
     return trace_decorator
+
+
+def _activate_span(current_span, using_scope_manager):
+    if using_scope_manager:
+        return opentracing.tracer.scope_manager.activate(current_span, finish_on_close=True)
+
+    return current_span
