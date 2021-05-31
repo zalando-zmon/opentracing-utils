@@ -68,6 +68,39 @@ def test_trace_flask(monkeypatch):
 
 
 @pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
+def test_trace_flask_with_use_scope_manager(monkeypatch):
+    app = get_flask_app()
+    recorder = get_recorder()
+
+    trace_flask(app, use_scope_manager=True)
+
+    trace_id = ''
+    root_span_id = ''
+
+    with app.app_context():
+        def assert_scope_span():
+            span = extract_span_from_flask_request()
+            assert span is not None
+
+            assert opentracing.tracer.active_span is not None
+            assert opentracing.tracer.active_span == span
+
+            return '{},{}'.format(span.context.trace_id, span.context.span_id)
+
+        app.add_url_rule('/get-span', view_func=assert_scope_span)
+
+        client = app.test_client()
+
+        r = client.get('/get-span')
+        trace_id, root_span_id = r.get_data(as_text=True).split(',')
+
+    assert len(recorder.spans) == 1
+
+    assert trace_id == str(recorder.spans[-1].context.trace_id)
+    assert root_span_id == str(recorder.spans[-1].context.span_id)
+
+
+@pytest.mark.skipif(skip_flask, reason='Flask import failed - probably due to messed up futures dependency!')
 def test_trace_flask_operation_name(monkeypatch):
     app = get_flask_app()
     recorder = get_recorder()

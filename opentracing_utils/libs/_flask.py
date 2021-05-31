@@ -20,7 +20,7 @@ DEFUALT_RESPONSE_ATTRIBUTES = ('status_code',)
 
 def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFUALT_RESPONSE_ATTRIBUTES,
                 default_tags=None, error_on_4xx=True, mask_url_query=False, mask_url_path=False, operation_name=None,
-                skip_span=None):
+                skip_span=None, use_scope_manager=False):
     """
     Add OpenTracing to Flask applications using ``before_request`` & ``after_request``.
 
@@ -56,6 +56,9 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
     :param skip_span: Callable to determine whether to skip this request span. If returned ``True`` then span
                       will be skipped. This is useful for excluding certain endpoints, like health checks.
     :type skip_span: Callable[*args, **kwargs]
+
+    :param use_scope_manager: Always use the scope manager when starting the span. Default is ``False``.
+    :type use_scope_manager: bool
     """
 
     min_error_code = 400 if error_on_4xx else 500
@@ -112,6 +115,10 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
         span.set_tag(ot_tags.COMPONENT, 'flask')
         span.set_tag(ot_tags.SPAN_KIND, ot_tags.SPAN_KIND_RPC_SERVER)
 
+        if use_scope_manager:
+            scope = opentracing.tracer.scope_manager.activate(span, finish_on_close=True)
+            request.current_scope = scope
+
         # Use ``flask.request`` as in process context.
         request.current_span = span
 
@@ -130,7 +137,10 @@ def trace_flask(app, request_attr=DEFUALT_REQUEST_ATTRIBUTES, response_attr=DEFU
                 if response.status_code >= min_error_code:
                     request.current_span.set_tag('error', True)
 
-                request.current_span.finish()
+                if hasattr(request, "current_scope"):
+                    request.current_scope.close()
+                else:
+                    request.current_span.finish()
         finally:
             return response
 
