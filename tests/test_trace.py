@@ -425,3 +425,42 @@ def test_trace_skip_span():
 
     assert recorder.spans[0].context.trace_id == test_span.context.trace_id
     assert recorder.spans[0].parent_id == test_span.context.span_id
+
+
+def test_trace_with_scope_active():
+    @trace()
+    def f1():
+        pass
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    root_span = None
+    with opentracing.tracer.start_active_span(operation_name='test_trace', finish_on_close=True) as scope:
+        root_span = scope.span
+        f1()
+        f1()
+        f1()
+
+    assert len(recorder.spans) == 4
+    assert root_span is not None
+    for span in recorder.spans[:3]:
+        assert span.context.trace_id == root_span.context.trace_id
+        assert span.parent_id == root_span.context.span_id
+
+
+def test_trace_with_use_scope_manager():
+
+    # Always use the scope manager
+    @trace(use_scope_manager=True)
+    def f1():
+        assert opentracing.tracer.active_span is not None
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    f1()
+    f1()
+    f1()
+
+    assert len(recorder.spans) == 3

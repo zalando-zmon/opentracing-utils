@@ -18,19 +18,81 @@ import pytest
 import six
 
 
+class NotActiveScopeManager(opentracing.ScopeManager):
+    @property
+    def active(self):
+        return None
+
+
 def test_get_new_span():
+    opentracing.tracer = BasicTracer(scope_manager=NotActiveScopeManager())
 
     def f():
         pass
 
-    span_arg_name, span = get_new_span(f, [], {})
+    span_arg_name, using_scope_manager, span = get_new_span(f, [], {})
 
     assert DEFAULT_SPAN_ARG_NAME == span_arg_name
     assert isinstance(span, opentracing.Span)
+    assert using_scope_manager is False
+
+
+def test_get_new_span_with_scope_manager():
+    # BasicTracer comes with an "active" scope_manager.
+    opentracing.tracer = BasicTracer()
+
+    with opentracing.tracer.start_active_span("parent_span") as scope:
+
+        def f():
+            pass
+
+        span_arg_name, using_scope_manager, span = get_new_span(f, [], {})
+
+        assert DEFAULT_SPAN_ARG_NAME == span_arg_name
+        assert isinstance(span, opentracing.Span)
+        assert span.parent_id == scope.span.context.span_id
+        assert using_scope_manager is True
+
+
+def test_get_new_span_with_scope_manager_no_active_span():
+    # BasicTracer comes with an "active" scope_manager.
+    opentracing.tracer = BasicTracer()
+
+    def f():
+        pass
+
+    span_arg_name, using_scope_manager, span = get_new_span(f, [], {})
+
+    assert DEFAULT_SPAN_ARG_NAME == span_arg_name
+    assert isinstance(span, opentracing.Span)
+    assert using_scope_manager is False
+
+
+def test_get_new_span_with_scope_manager_with_extractor():
+    # BasicTracer comes with an "active" scope_manager.
+    opentracing.tracer = BasicTracer()
+
+    extractor = MagicMock()
+    extractor.return_value = None  # should not be used!
+
+    with opentracing.tracer.start_active_span("parent_span") as scope:
+
+        def f():
+            pass
+
+        span_arg_name, using_scope_manager, span = get_new_span(f, [], {})
+
+        assert DEFAULT_SPAN_ARG_NAME == span_arg_name
+        assert isinstance(span, opentracing.Span)
+        assert span.parent_id == scope.span.context.span_id
+        assert using_scope_manager is True
+
+        # not called as scope manager is active and has a span!
+        extractor.assert_not_called()
 
 
 def test_get_new_span_with_extractor():
-    opentracing.tracer = BasicTracer()
+    opentracing.tracer = BasicTracer(scope_manager=NotActiveScopeManager())
     parent_span = opentracing.tracer.start_span()
 
     extractor = MagicMock()
@@ -41,10 +103,13 @@ def test_get_new_span_with_extractor():
     def f(ctx, extras=True):
         pass
 
-    span_arg_name, span = get_new_span(f, [ctx], {'extras': True}, span_extractor=extractor, inspect_stack=False)
+    span_arg_name, using_scope_manager, span = get_new_span(
+        f, [ctx], {'extras': True}, span_extractor=extractor, inspect_stack=False)
 
     assert DEFAULT_SPAN_ARG_NAME == span_arg_name
     assert span.parent_id == parent_span.context.span_id
+    assert using_scope_manager is False
+
     extractor.assert_called_with(ctx, extras=True)
 
 
@@ -55,10 +120,11 @@ def test_get_new_span_with_failing_extractor():
     def extractor():
         raise RuntimeError('Failed')
 
-    span_arg_name, span = get_new_span(f, [], {}, span_extractor=extractor)
+    span_arg_name, using_scope_manager, span = get_new_span(f, [], {}, span_extractor=extractor)
 
     assert DEFAULT_SPAN_ARG_NAME == span_arg_name
     assert span.parent_id is None
+    assert using_scope_manager is False
 
 
 def test_adjust_span(monkeypatch):
