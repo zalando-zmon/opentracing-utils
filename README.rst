@@ -33,8 +33,9 @@ Features
 ``opentracing-utils`` should provide and aims at the following:
 
 * No external dependencies, only `opentracing-python <https://github.com/opentracing/opentracing-python>`_.
-* No threadlocals. Either pass spans explicitly or fallback to callstack frames inspection!
+* No threadlocals. Either use tracer scoper manager, pass spans explicitly or fallback to callstack frames inspection!
 * Context agnostic, so no external **context implementation** dependency (no Tornado, Flask, Django etc ...).
+* Support OpenTracing 2.0 API, with ``scope_manager`` (opentracing-utils>0.21.0).
 * Try to be less verbose - just add the ``@trace`` decorator.
 * Could be more verbose when needed, without complexity - just accept ``**kwargs`` and get the span passed to your traced functions via ``@trace(pass_span=True)``.
 * Support asyncio/async-await coroutines. (drop support for py2.7)
@@ -201,8 +202,18 @@ Add ``lightstep`` to the ``dependencies.txt`` of your project.
 @trace decorator
 ----------------
 
+The ``@trace`` decorator supports OpenTracing ``scope_manager`` API (new in opentracing-utils > 0.21.0).
+
+The order of detecting parent span goes as the following:
+
+1. Detect ``scope_manager`` active span (opentracing.tracer.active_span).
+2. Using ``span_extractor`` if exists.
+3. Detect from passed kwargs.
+4. Detect using call stack frames.
+
 .. code-block:: python
 
+    import opentracing
     from opentracing_utils import trace, extract_span_from_kwargs
 
     # decorate all your functions that require tracing
@@ -243,6 +254,67 @@ Add ``lightstep`` to the ``dependencies.txt`` of your project.
         # trace_me will have ``epoch`` span as its parent.
         trace_me()
 
+
+@trace using scope_manager
+--------------------------
+
+In case you need to always use the ``scope_manager``, then you can pass ``use_scope_manager=True`` to ``@trace``.
+
+.. code-block:: python
+
+    # ``use_scope_manager=True`` will always use scope_manager API for activating the new span.
+    @trace(operation_name='traced', use_scope_manager=True)
+    def trace_me_via_scope_manager():
+        # @trace will activate the current span using the ``scope_manager``.
+        current_span = opentracing.tracer.active_span
+        assert current_span.operation_name == 'traced'
+
+        # @trace will detect parent span from the ``scope_manager`` active span and automatically activate the new nested span.
+        @trace(operation_name='nested')
+        def trace_and_detect_scope():
+            nested_span = opentracing.tracer.active_span
+            assert nested_span.operation_name == 'nested'
+
+        trace_and_detect_scope()
+
+        # current_span is back to be the active span.
+        assert current_span == opentracing.tracer.active_span
+
+
+    # If the ``scope_manager`` API is activating the parent span, @trace will detect it and use the ``scope_manager`` for the child span as well.
+    @trace()
+    def trace_and_detect_parent_scope():
+        current_span = opentracing.tracer.active_span
+        assert current_span.operation_name == 'trace_and_detect_parent_scope'
+
+
+    with opentracing.tracer.start_active_span('top_span', finish_on_close=True):
+
+        # the child span will depend on the ``scope_manager`` to detect the ``top_span`` as the parent span for the following function call.
+        trace_and_detect_parent_scope()
+
+
+There is a caveat with regards to passing a parent span in kwargs:
+
+.. code-block:: python
+
+    @trace()
+    def trace_me(**kwargs):
+        current_span = opentracing.tracer.active_span
+        assert current_span.operation_name == 'trace_me'
+
+
+    with opentracing.tracer.start_active_span('top_span', finish_on_close=True):
+
+        # This span is detached and does not link to ``top_span``.
+        detached_span = opentracing.tracer.start_span('detached_span')
+
+        # @trace will detect ``top_span`` as the parent span as it is active in the scope. The ``detached_span`` passed in the kwargs won't be considered.
+        trace_me(parent_span=detached_span)
+
+        detached_span.finish()
+
+
 Skip Spans
 ^^^^^^^^^^
 
@@ -275,7 +347,7 @@ In certain cases you might need to skip certain spans while using the ``@trace``
 Broken traces
 ^^^^^^^^^^^^^
 
-If you plan to break nested traces, then it is recommended to pass the span to traced functions
+If you plan to break nested traces, then it is recommended to pass the span to traced functions.
 
 .. code-block:: python
 
@@ -306,6 +378,8 @@ Multiple traces
 
 If you plan to use multiple traces then it is better to always pass the span as it is safer/guaranteed.
 
+Note: this should not be an issue if ``scope_manager`` is used.
+
 .. code-block:: python
 
     first_span = opentracing.tracer.start_span(operation_name='first_trace')
@@ -328,6 +402,8 @@ Generators (yield)
 ^^^^^^^^^^^^^^^^^^
 
 Using generators could get tricky and leads to invalid parent span inspection. It is recommended to pass the span explicitly.
+
+Note: Since detecting parent span using ``scope_manager`` takes precedence over passed span in kwargs, span detection might not work as expected in case ``scope_manager`` is used.
 
 .. code-block:: python
 
@@ -377,14 +453,17 @@ For tracing `Django <https://www.djangoproject.com/>`_ applications. You can use
 
     # Further options
 
-    # Add default tags to all incoming HTTP requests spans
+    # Add default tags to all incoming HTTP requests spans.
     OPENTRACING_UTILS_DEFAULT_TAGS = {'my-default-tag': 'tag-value'}
 
-    # Add error tag on 4XX responses (default is ``True``)
+    # Add error tag on 4XX responses (default is ``True``).
     OPENTRACING_UTILS_ERROR_4XX = False
 
-    # Override span operation_name (default is ``view_func.__name__``)
+    # Override span operation_name (default is ``view_func.__name__``).
     OPENTRACING_UTILS_OPERATION_NAME_CALLABLE = 'my_app.utils.span_operation_name'
+
+    # Use tracer scope manager (default is ``False``).
+    OPENTRACING_UTILS_USE_SCOPE_MANAGER = True
 
     # Exclude certain requests from OpenTracing
     OPENTRACING_UTILS_SKIP_SPAN_CALLABLE = 'my_app.utils.skip_span'
@@ -430,6 +509,9 @@ For tracing `Flask <http://flask.pocoo.org>`_ applications. This utility functio
 
     trace_flask(app)
 
+    # You can use the ``scope_manager`` for managing all spans.
+    trace_flask(app, use_scope_manager=True)
+
     # You can add default_tags or optionally treat 4xx responses as not an error (i.e no error tag in span)
     # trace_flask(app, default_tags={'always-there': True}, error_on_4xx=False)
 
@@ -457,6 +539,9 @@ For tracing `requests <https://github.com/requests/requests>`_ client library fo
     # trace_requests should be called as early as possible, before importing requests
     from opentracing_utils import trace_requests
     trace_requests()  # noqa
+
+    # You can use the ``scope_manager`` for managing all spans.
+    trace_requests(use_scope_manager=True)  # noqa
 
     # In case you want to include default span tags to be sent with every outgoing request.
     # trace_requests(default_tags={'account_id': '123'}, set_error_tag=False)
@@ -494,6 +579,9 @@ For tracing `SQLAlchemy <https://docs.sqlalchemy.org/en/latest/>`_ client librar
     # By default, span operation_name will be deduced from the query statement (e.g. select, update, delete).
     from opentracing_utils import trace_sqlalchemy
     trace_sqlalchemy()
+
+    # You can use the ``scope_manager`` for managing all spans.
+    trace_sqlalchemy(use_scope_manager=True)
 
     # You can customize the span operation_name via supplying a callable
     def get_sqlalchemy_span_op_name(conn, cursor, statement, parameters, context, executemany):
