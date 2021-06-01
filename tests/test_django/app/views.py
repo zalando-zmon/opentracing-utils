@@ -1,5 +1,7 @@
 from django.http import HttpResponse
 
+import opentracing
+
 from opentracing_utils import trace, extract_span_from_django_request, extract_span_from_kwargs
 
 
@@ -25,3 +27,13 @@ def nested(request, *args, **kwargs):
     current_span.set_tag('nested', True)
 
     return HttpResponse('NESTED')
+
+
+@trace(operation_name='nested_scope_call', pass_span=True)
+def nested_scope(request, *args, **kwargs):
+    current_span = opentracing.tracer.active_span
+
+    with opentracing.tracer.start_active_span("child_span", child_of=current_span.context):
+        ...
+
+    return HttpResponse('NESTED SCOPE')

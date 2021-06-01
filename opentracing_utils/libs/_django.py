@@ -47,6 +47,8 @@ class OpenTracingHttpMiddleware(MiddlewareMixin):
         else:
             self._op_name_callable = import_string(op_name_str) if op_name_str else None
 
+        self.use_scope_manager = getattr(settings, 'OPENTRACING_UTILS_USE_SCOPE_MANAGER', False)
+
         skip_span_str = getattr(settings, 'OPENTRACING_UTILS_SKIP_SPAN_CALLABLE', '')
         if callable(skip_span_str):
             self._skip_span_callable = skip_span_str
@@ -81,6 +83,10 @@ class OpenTracingHttpMiddleware(MiddlewareMixin):
             except Exception:  # pragma: no cover
                 pass
 
+        if self.use_scope_manager:
+            scope = opentracing.tracer.scope_manager.activate(span, finish_on_close=True)
+            request.current_scope = scope
+
         request.current_span = span
 
     def process_exception(self, request, exception):
@@ -111,7 +117,10 @@ class OpenTracingHttpMiddleware(MiddlewareMixin):
             if response.status_code >= self._min_error_code:
                 current_span.set_tag('error', True)
 
-            current_span.finish()
+            if hasattr(request, "current_scope"):
+                request.current_scope.close()
+            else:
+                current_span.finish()
         elif exception:
             current_span.set_tag('error', True)
             current_span.log_kv({

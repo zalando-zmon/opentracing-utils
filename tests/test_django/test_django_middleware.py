@@ -80,6 +80,32 @@ def test_request_nested(client):
 
 
 @pytest.mark.skipif(six.PY2, reason='')
+def test_request_nested_scope(client, settings):
+    recorder = get_recorder()
+
+    settings.OPENTRACING_UTILS_USE_SCOPE_MANAGER = True
+
+    response = client.get('/nested-scope')
+    assert response.content == b'NESTED SCOPE'
+
+    assert len(recorder.spans) == 3
+
+    assert recorder.spans[2].operation_name == 'nested_scope'
+    assert recorder.spans[2].tags[tags.COMPONENT] == 'django'
+    assert recorder.spans[2].tags[tags.HTTP_URL] == '/nested-scope'
+    assert recorder.spans[2].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[2].tags[tags.HTTP_STATUS_CODE] == 200
+
+    assert recorder.spans[1].operation_name == 'nested_scope_call'
+    assert recorder.spans[1].context.trace_id == recorder.spans[2].context.trace_id
+    assert recorder.spans[1].parent_id == recorder.spans[2].context.span_id
+
+    assert recorder.spans[0].operation_name == 'child_span'
+    assert recorder.spans[0].context.trace_id == recorder.spans[1].context.trace_id
+    assert recorder.spans[0].parent_id == recorder.spans[1].context.span_id
+
+
+@pytest.mark.skipif(six.PY2, reason='')
 def test_request_user(client):
     recorder = get_recorder()
 
