@@ -204,11 +204,11 @@ Add ``lightstep`` to the ``dependencies.txt`` of your project.
 
 The ``@trace`` decorator supports OpenTracing ``scope_manager`` API (new in opentracing-utils > 0.21.0).
 
-The order of detecting parent span goes as the following:
+The order of detecting a parent span goes as the following:
 
-1. Detect ``scope_manager`` active span (opentracing.tracer.active_span).
-2. Using ``span_extractor`` if exists.
-3. Detect from passed kwargs.
+1. Using ``span_extractor`` if exists.
+2. Detect from passed kwargs.
+3. Detect ``scope_manager`` active span (opentracing.tracer.active_span).
 4. Detect using call stack frames.
 
 .. code-block:: python
@@ -292,27 +292,6 @@ In case you need to always use the ``scope_manager``, then you can pass ``use_sc
 
         # the child span will depend on the ``scope_manager`` to detect the ``top_span`` as the parent span for the following function call.
         trace_and_detect_parent_scope()
-
-
-There is a caveat with regards to passing a parent span in kwargs:
-
-.. code-block:: python
-
-    @trace()
-    def trace_me(**kwargs):
-        current_span = opentracing.tracer.active_span
-        assert current_span.operation_name == 'trace_me'
-
-
-    with opentracing.tracer.start_active_span('top_span', finish_on_close=True):
-
-        # This span is detached and does not link to ``top_span``.
-        detached_span = opentracing.tracer.start_span('detached_span')
-
-        # @trace will detect ``top_span`` as the parent span as it is active in the scope. The ``detached_span`` passed in the kwargs won't be considered.
-        trace_me(parent_span=detached_span)
-
-        detached_span.finish()
 
 
 Skip Spans
@@ -402,8 +381,6 @@ Generators (yield)
 ^^^^^^^^^^^^^^^^^^
 
 Using generators could get tricky and leads to invalid parent span inspection. It is recommended to pass the span explicitly.
-
-Note: Since detecting parent span using ``scope_manager`` takes precedence over passed span in kwargs, span detection might not work as expected in case ``scope_manager`` is used.
 
 .. code-block:: python
 
