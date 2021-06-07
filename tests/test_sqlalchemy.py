@@ -18,6 +18,13 @@ from opentracing_utils import trace
 from opentracing_utils.libs._sqlalchemy import trace_sqlalchemy
 
 
+class LegacyTracer(BasicTracer):
+
+    @property
+    def active_span(self):
+        raise AttributeError
+
+
 Base = declarative_base()
 
 
@@ -66,6 +73,16 @@ def recorder():
     recorder = Recorder()
     recorder.spans = []
     opentracing.tracer = BasicTracer(recorder=recorder)
+    yield recorder
+    del(recorder)
+
+
+@pytest.fixture
+def legacy_recorder():
+    recorder = Recorder()
+    recorder.spans = []
+    # no scope manager support.
+    opentracing.tracer = LegacyTracer(recorder=recorder)
     yield recorder
     del(recorder)
 
@@ -277,6 +294,31 @@ def test_trace_sqlalchemy_error(monkeypatch, session, recorder, error):
     assert span_error is error
 
 
+@pytest.mark.parametrize('error', (False, True))
+def test_trace_sqlalchemy_error_scope_manager(monkeypatch, session, recorder, error):
+    trace_sqlalchemy(set_error_tag=error, use_scope_manager=True)
+
+    top_span = opentracing.tracer.start_span(operation_name='top_span')
+
+    with top_span:
+        user = User(name='Tracer', is_active=True)
+        session.add(user)
+        session.commit()
+
+        with pytest.raises(IntegrityError):
+            user = User(name='Tracer', is_active=True)
+            session.add(user)
+            session.commit()
+
+    # This is ugly but somehow overcomes the inconsistency of spans order!
+    span_error = False
+    for span in recorder.spans:
+        if 'error' in span.tags:
+            span_error = True
+            break
+    assert span_error is error
+
+
 def test_trace_sqlalchemy_operation_name(monkeypatch, session, recorder):
 
     def get_operation_name(conn, cursor, statement, parameters, context, executemany):
@@ -343,3 +385,22 @@ def test_trace_sqlalchemy_enrich_span(monkeypatch, session, recorder):
     assert len(recorder.spans) == 1
     assert parameters_tag in recorder.spans[0].tags
     assert recorder.spans[0].tags[parameters_tag] == (user_name, 1)
+
+
+def test_trace_sqlalchemy_scope_legacy_tracer(monkeypatch, session, legacy_recorder):
+    trace_sqlalchemy()
+
+    top_span = None
+    with opentracing.tracer.start_span(operation_name='top_span') as top_span:
+        user = User(name='Tracer', is_active=True)
+        session.add(user)
+        session.commit()
+
+    assert len(legacy_recorder.spans) == 2
+
+    sql_span = legacy_recorder.spans[0]
+    assert sql_span.context.trace_id == top_span.context.trace_id
+    assert sql_span.parent_id == top_span.context.span_id
+
+    assert sql_span.tags['db.statement'] == 'INSERT INTO users (name, is_active) VALUES (?, ?)'
+    assert_sqlalchemy_span(sql_span, operation_name='insert')
