@@ -12,10 +12,10 @@ def trace(component=None, operation_name=None, tags=None, use_follows_from=False
 
     The order of parent span inspection:
 
-    1. Using ``opentracing.tracer.active_span`` managed by the tracer context manager. The new span will be using the
+    1. Using ``span_extractor``.
+    2. Detecting span in kwargs.
+    3. Using ``opentracing.tracer.active_span`` managed by the tracer context manager. The new span will be using the
     scope manager.
-    2. Using ``span_extractor``.
-    3. Detecting span in kwargs.
     4. Using call stack frames inspection.
 
     :param commponent: commponent name.
