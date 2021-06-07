@@ -18,31 +18,39 @@ def get_new_span(
         span_extractor=None, use_follows_from=False):
     parent_span = None
     using_scope_manager = False
-    span_arg_name = DEFAULT_SPAN_ARG_NAME
+    span_arg_name = None
 
     if not ignore_parent_span:
-        try:
-            # We try first with inspecting ``active_span`` managed by ``tracer.scope_manager``.
-            parent_span = opentracing.tracer.active_span
-            using_scope_manager = True if parent_span else False
-        except AttributeError:
-            # Old opentracing lib!
-            ...
-
-        if not parent_span and callable(span_extractor):
+        if callable(span_extractor):
             try:
                 parent_span = span_extractor(*func_args, **func_kwargs)
             except Exception:
                 logger.exception('Failed to extract span from: {}'.format(span_extractor.__name__))
 
         if not parent_span:
-            span_arg_name, parent_span = get_parent_span(inspect_stack=inspect_stack, **func_kwargs)
+            span_arg_name, parent_span = get_span_from_kwargs(**func_kwargs)
+
+        if not parent_span:
+            try:
+                # We try inspecting ``active_span`` managed by ``tracer.scope_manager``.
+                parent_span = opentracing.tracer.active_span
+                using_scope_manager = True if parent_span else False
+            except AttributeError:
+                # Old opentracing lib!
+                ...
+
+        # Finally, try to inspect call stack frames.
+        if not parent_span:
+            span_arg_name, parent_span = get_parent_span(
+                inspect_stack=inspect_stack, inspect_kwargs=False, **func_kwargs)
 
     op_name = f.__name__ if not operation_name else operation_name
 
     references = None
     if parent_span:
         references = [follows_from(parent_span.context)] if use_follows_from else [child_of(parent_span.context)]
+
+    span_arg_name = span_arg_name or DEFAULT_SPAN_ARG_NAME
 
     return (
         span_arg_name,
@@ -99,8 +107,12 @@ def inspect_span_from_stack(depth=100):
     return span
 
 
-def get_parent_span(inspect_stack=True, **kwargs):
-    span_arg_name, parent_span = get_span_from_kwargs(**kwargs)
+def get_parent_span(inspect_stack=True, inspect_kwargs=True, **kwargs):
+    span_arg_name = DEFAULT_SPAN_ARG_NAME
+    parent_span = None
+
+    if inspect_kwargs:
+        span_arg_name, parent_span = get_span_from_kwargs(**kwargs)
 
     if not parent_span and inspect_stack:
         span_arg_name = DEFAULT_SPAN_ARG_NAME

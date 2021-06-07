@@ -24,6 +24,13 @@ class NotActiveScopeManager(opentracing.ScopeManager):
         return None
 
 
+class LegacyTracer(BasicTracer):
+
+    @property
+    def active_span(self):
+        raise AttributeError
+
+
 def test_get_new_span():
     opentracing.tracer = BasicTracer(scope_manager=NotActiveScopeManager())
 
@@ -66,29 +73,6 @@ def test_get_new_span_with_scope_manager_no_active_span():
     assert DEFAULT_SPAN_ARG_NAME == span_arg_name
     assert isinstance(span, opentracing.Span)
     assert using_scope_manager is False
-
-
-def test_get_new_span_with_scope_manager_with_extractor():
-    # BasicTracer comes with an "active" scope_manager.
-    opentracing.tracer = BasicTracer()
-
-    extractor = MagicMock()
-    extractor.return_value = None  # should not be used!
-
-    with opentracing.tracer.start_active_span("parent_span") as scope:
-
-        def f():
-            pass
-
-        span_arg_name, using_scope_manager, span = get_new_span(f, [], {})
-
-        assert DEFAULT_SPAN_ARG_NAME == span_arg_name
-        assert isinstance(span, opentracing.Span)
-        assert span.parent_id == scope.span.context.span_id
-        assert using_scope_manager is True
-
-        # not called as scope manager is active and has a span!
-        extractor.assert_not_called()
 
 
 def test_get_new_span_with_extractor():
@@ -188,3 +172,64 @@ def test_inspect_span_from_stack_does_not_create_reference_cycle():
 
     for previous_generation, current_generation in zip(previous_stats, stats):
         assert previous_generation['collected'] == current_generation['collected']
+
+
+def test_get_new_span_with_extractor_with_scope():
+    opentracing.tracer = BasicTracer()
+    parent_span = opentracing.tracer.start_span()
+
+    extractor = MagicMock()
+    extractor.return_value = parent_span
+
+    ctx = '123'
+
+    def f(ctx, extras=True):
+        pass
+
+    with opentracing.tracer.start_active_span("ignored_parent", finish_on_close=True):
+        span_arg_name, using_scope_manager, span = get_new_span(
+            f, [ctx], {'extras': True}, span_extractor=extractor, inspect_stack=False)
+
+    assert DEFAULT_SPAN_ARG_NAME == span_arg_name
+    # span_extractor takes precedence.
+    assert span.parent_id == parent_span.context.span_id
+    assert using_scope_manager is False
+
+    extractor.assert_called_with(ctx, extras=True)
+
+
+def test_get_new_span_kwargs_with_scope(monkeypatch):
+    opentracing.tracer = BasicTracer()
+    parent_span = opentracing.tracer.start_span()
+
+    ctx = '123'
+
+    def f(ctx, extras=True):
+        pass
+
+    with opentracing.tracer.start_active_span("ignored_parent", finish_on_close=True):
+        span_arg_name, using_scope_manager, span = get_new_span(
+            f, [ctx], {'extras': True, 'span': parent_span}, inspect_stack=False)
+
+    assert 'span' == span_arg_name
+    # span in kwargs takes precedence.
+    assert span.parent_id == parent_span.context.span_id
+    assert using_scope_manager is False
+
+
+def test_get_new_span_with_legacy_tracer():
+    # Does not have active_span
+    opentracing.tracer = LegacyTracer()
+
+    with opentracing.tracer.start_span("parent_span") as parent_span:
+
+        def f():
+            pass
+
+        span_arg_name, using_scope_manager, span = get_new_span(f, [], {})
+
+        assert DEFAULT_SPAN_ARG_NAME == span_arg_name
+        assert isinstance(span, opentracing.Span)
+        # detected via inspect_stack (i.e. fallback).
+        assert span.parent_id == parent_span.context.span_id
+        assert using_scope_manager is False
