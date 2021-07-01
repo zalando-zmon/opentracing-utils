@@ -276,3 +276,20 @@ def test_trace_sqlalchemy_skip_span(monkeypatch, session, recorder):
 
     assert len(recorder.spans) == 1
     assert recorder.spans[0].operation_name != 'insert'
+
+def test_trace_sqlalchemy_enrich_span(monkeypatch, session, recorder):
+    parameters_tag = 'parameters'
+    user_name = 'Tracer'
+
+    def enrich_span(span, conn, cursor, statement, parameters, context, executemany):
+        span.set_tag(parameters_tag, parameters)
+
+    trace_sqlalchemy(enrich_span=enrich_span)
+
+    user = User(name=user_name, is_active=True)
+    session.add(user)
+    session.commit()
+
+    assert len(recorder.spans) == 1
+    assert parameters_tag in recorder.spans[0].tags
+    assert recorder.spans[0].tags[parameters_tag] == (user_name, 1)
