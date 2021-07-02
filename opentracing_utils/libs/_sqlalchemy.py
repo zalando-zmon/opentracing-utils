@@ -29,7 +29,7 @@ def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=Fal
                       will be skipped.
     :type skip_span: Callable[conn, cursor, statement, parameters, context, executemany]
 
-    :param enrich_span: Callable to enrice the span with additional data.
+    :param enrich_span: Callable to enrich the span with additional data.
     :type enrich_span: Callable[span, conn, cursor, statement, parameters, context, executemany]
     """
 
