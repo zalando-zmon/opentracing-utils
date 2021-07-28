@@ -32,6 +32,7 @@ jobs:
       run: |
         python setup.py install
         py.test -v tests
+        codecov -e py
     - name: Flake8
       run: |
         flake8 --ignore=E402 .
