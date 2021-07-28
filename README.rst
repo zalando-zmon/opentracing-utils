@@ -510,6 +510,12 @@ For tracing `SQLAlchemy <https://docs.sqlalchemy.org/en/latest/>`_ client librar
 
     # trace_sqlalchemy(skip_span=skip_inserts)
 
+    # you can enrich the span with by supplying an ``enrich_span`` callable.
+    def enrich_sql_span_parameters(span, conn, cursor, statement, parameters, context, executemany):
+        span.set_tag('parameters', parameters)
+
+    # trace_sqlalchemy(enrich_span=enrich_sql_span_parameters)
+
 
 License
 =======

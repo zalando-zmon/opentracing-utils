@@ -10,7 +10,7 @@ from opentracing.ext import tags as ot_tags
 from opentracing_utils.span import get_parent_span
 
 
-def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=False, skip_span=None):
+def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=False, skip_span=None, enrich_span=None):
     """
     Trace Sqlalchemy database queries.
 
@@ -28,6 +28,9 @@ def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=Fal
     :param skip_span: Callable to determine whether to skip this SQL query(ies) spans. If returned ``True`` then span
                       will be skipped.
     :type skip_span: Callable[conn, cursor, statement, parameters, context, executemany]
+
+    :param enrich_span: Callable to enrich the span with additional data.
+    :type enrich_span: Callable[span, conn, cursor, statement, parameters, context, executemany]
     """
 
     @listens_for(Engine, 'before_cursor_execute')
@@ -53,6 +56,9 @@ def trace_sqlalchemy(operation_name=None, span_extractor=None, set_error_tag=Fal
                     .set_tag('db.type', 'sql')
                     .set_tag('db.engine', context.dialect.name)
                     .set_tag('db.statement', statement))
+
+                if callable(enrich_span):
+                    enrich_span(query_span, conn, cursor, statement, parameters, context, executemany)
 
                 context._query_span = query_span
 
