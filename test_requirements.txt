@@ -5,6 +5,8 @@ mock==2.0.0
 opentracing
 pytest
 pytest_cov
+flake8
+codecov>=1.4.0
 requests
 sqlalchemy
 # Third party tracers

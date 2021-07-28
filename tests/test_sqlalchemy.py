@@ -277,6 +277,7 @@ def test_trace_sqlalchemy_skip_span(monkeypatch, session, recorder):
     assert len(recorder.spans) == 1
     assert recorder.spans[0].operation_name != 'insert'
 
+
 def test_trace_sqlalchemy_enrich_span(monkeypatch, session, recorder):
     parameters_tag = 'parameters'
     user_name = 'Tracer'
