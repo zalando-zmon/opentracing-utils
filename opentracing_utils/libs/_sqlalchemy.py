@@ -54,7 +54,7 @@ def trace_sqlalchemy(
             parent_span = opentracing.tracer.active_span
             using_scope_manager = True if parent_span else False
         except AttributeError:
-            ...
+            pass
 
         if not parent_span and callable(span_extractor):
             parent_span = span_extractor(conn, cursor, statement, parameters, context, executemany)
