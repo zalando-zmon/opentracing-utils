@@ -34,6 +34,6 @@ def nested_scope(request, *args, **kwargs):
     current_span = opentracing.tracer.active_span
 
     with opentracing.tracer.start_active_span("child_span", child_of=current_span.context):
-        ...
+        pass
 
     return HttpResponse('NESTED SCOPE')
