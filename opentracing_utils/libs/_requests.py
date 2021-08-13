@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True,
-                   mask_url_path=False, ignore_url_patterns=None, span_extractor=None):
+                   mask_url_path=False, ignore_url_patterns=None, span_extractor=None, use_scope_manager=False):
     """Patch requests library with OpenTracing support.
 
     :param default_tags: Default span tags to included with every outgoing request.
@@ -48,6 +48,9 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True,
 
     :param span_extractor: Callable to return the parent span.
     :type span_extractor: Callable[*args, **kwargs]
+
+    :param use_scope_manager: Always use the scope manager when starting the span.
+    :type use_scope_manager: bool
     """
     def skip_span_matcher(http_adapter_obj, request, **kwargs):
         if ignore_url_patterns is None:
@@ -58,7 +61,13 @@ def trace_requests(default_tags=None, set_error_tag=True, mask_url_query=True,
 
         return False
 
-    @trace(pass_span=True, tags=default_tags, skip_span=skip_span_matcher, span_extractor=span_extractor)
+    @trace(
+        pass_span=True,
+        tags=default_tags,
+        skip_span=skip_span_matcher,
+        span_extractor=span_extractor,
+        use_scope_manager=use_scope_manager
+    )
     def requests_send_wrapper(self, request, **kwargs):
         if ignore_url_patterns is not None:
             if any(re.match(pattern, request.url) for pattern in ignore_url_patterns):

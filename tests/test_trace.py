@@ -425,3 +425,81 @@ def test_trace_skip_span():
 
     assert recorder.spans[0].context.trace_id == test_span.context.trace_id
     assert recorder.spans[0].parent_id == test_span.context.span_id
+
+
+def test_trace_with_scope_active():
+    @trace()
+    def f1():
+        pass
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    root_span = None
+    with opentracing.tracer.start_active_span(operation_name='test_trace', finish_on_close=True) as scope:
+        root_span = scope.span
+        f1()
+        f1()
+        f1()
+
+    assert len(recorder.spans) == 4
+    assert root_span is not None
+    for span in recorder.spans[:3]:
+        assert span.context.trace_id == root_span.context.trace_id
+        assert span.parent_id == root_span.context.span_id
+
+
+def test_trace_with_use_scope_manager():
+
+    # Always use the scope manager
+    @trace(use_scope_manager=True)
+    def f1():
+        assert opentracing.tracer.active_span is not None
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    f1()
+    f1()
+    f1()
+
+    assert len(recorder.spans) == 3
+
+
+def test_trace_generator_span_kwargs_with_scope_manager():
+
+    @trace()
+    def f1():
+        list(l2_gen())
+
+    @trace()
+    def f2():
+        pass
+
+    @trace(pass_span=True)
+    def l2_gen(**kwargs):
+        s = extract_span_from_kwargs(**kwargs)
+        # passing span explicitly should build a correct tree.
+        f2(span=s)
+        for i in range(10):
+            yield i
+
+    recorder = Recorder()
+    opentracing.tracer = BasicTracer(recorder=recorder)
+
+    test_span = None
+    with opentracing.tracer.start_active_span(operation_name='test_trace') as scope:
+        test_span = scope.span
+        f1()
+
+    assert len(recorder.spans) == 4
+
+    assert recorder.spans[0].context.trace_id == test_span.context.trace_id
+    assert recorder.spans[0].parent_id == recorder.spans[2].context.span_id
+
+    # Inside generator takes generator as parent!
+    assert recorder.spans[1].context.trace_id == test_span.context.trace_id
+    assert recorder.spans[1].parent_id == recorder.spans[0].context.span_id
+
+    assert recorder.spans[2].context.trace_id == test_span.context.trace_id
+    assert recorder.spans[2].parent_id == recorder.spans[3].context.span_id

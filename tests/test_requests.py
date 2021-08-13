@@ -48,6 +48,13 @@ def assert_send_request_mock_no_traces(resp):
     return send_request_mock
 
 
+def assert_send_request_mock_scope_active(resp):
+    def send_request_mock(self, request, **kwargs):
+        assert opentracing.tracer.active_span is not None
+        return resp
+    return send_request_mock
+
+
 @pytest.mark.parametrize('status_code', (200, 302, 400, 500))
 def test_trace_requests(monkeypatch, status_code):
     resp = Response()
@@ -68,6 +75,51 @@ def test_trace_requests(monkeypatch, status_code):
     top_span = opentracing.tracer.start_span(operation_name='top_span')
 
     with top_span:
+        response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+
+        f1()
+
+    assert len(recorder.spans) == 3
+
+    assert recorder.spans[0].context.trace_id == top_span.context.trace_id
+    assert recorder.spans[0].parent_id == recorder.spans[-1].context.span_id
+
+    assert recorder.spans[-1].operation_name == 'top_span'
+
+    assert response.status_code == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_STATUS_CODE] == resp.status_code
+    assert recorder.spans[0].tags[tags.HTTP_URL] == URL
+    assert recorder.spans[0].tags[tags.HTTP_METHOD] == 'GET'
+    assert recorder.spans[0].tags[tags.SPAN_KIND] == tags.SPAN_KIND_RPC_CLIENT
+    assert recorder.spans[0].tags[tags.PEER_HOSTNAME] == 'example.com'
+    assert recorder.spans[0].tags['timeout'] is None
+    assert recorder.spans[0].tags[tags.COMPONENT] == 'requests'
+    assert recorder.spans[0].operation_name == '{}_get'.format(OPERATION_NAME_PREFIX)
+
+    if status_code >= 400:
+        assert recorder.spans[0].tags['error'] is True
+
+
+@pytest.mark.parametrize('status_code', (200, 302, 400, 500))
+def test_trace_requests_scope_active(monkeypatch, status_code):
+    resp = Response()
+    resp.status_code = status_code
+    resp.url = URL
+
+    monkeypatch.setattr('opentracing_utils.libs._requests.__requests_http_send', assert_send_request_mock(resp))
+
+    @trace()
+    def f1():
+        pass
+
+    recorder = Recorder()
+    t = BasicTracer(recorder=recorder)
+    t.register_required_propagators()
+    opentracing.tracer = t
+
+    top_span = None
+    with opentracing.tracer.start_active_span(operation_name='top_span', finish_on_close=True) as top_scope:
+        top_span = top_scope.span
         response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
 
         f1()
@@ -131,6 +183,29 @@ def test_trace_requests_with_ignore_url_pattern(monkeypatch):
 
     response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
     assert response.status_code == resp.status_code
+
+
+def test_trace_requests_with_use_scope_manager(monkeypatch):
+    resp = Response()
+    resp.status_code = 200
+    resp.url = URL
+
+    recorder = Recorder()
+    t = BasicTracer(recorder=recorder)
+    t.register_required_propagators()
+    opentracing.tracer = t
+
+    trace_requests(use_scope_manager=True)
+
+    monkeypatch.setattr(
+        'opentracing_utils.libs._requests.__requests_http_send',
+        assert_send_request_mock_scope_active(resp)
+    )
+
+    response = requests.get(URL, headers={CUSTOM_HEADER: CUSTOM_HEADER_VALUE})
+    assert response.status_code == resp.status_code
+
+    assert len(recorder.spans) == 1
 
 
 def test_trace_requests_do_not_ignore_if_no_match(monkeypatch):

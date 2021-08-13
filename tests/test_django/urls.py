@@ -8,5 +8,6 @@ urlpatterns = [
     url(r'^user', views.user, name='user'),
     url(r'^error', views.error, name='error'),
     url(r'^bad', views.bad_request, name='bad'),
+    url(r'^nested-scope', views.nested_scope, name='nested_scope'),
     url(r'^nested', views.nested, name='nested'),
 ]
