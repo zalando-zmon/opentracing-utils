@@ -37,7 +37,7 @@ def get_new_span(
                 using_scope_manager = True if parent_span else False
             except AttributeError:
                 # Old opentracing lib!
-                ...
+                pass
 
         # Finally, try to inspect call stack frames.
         if not parent_span:
