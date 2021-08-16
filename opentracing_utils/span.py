@@ -3,6 +3,12 @@ import logging
 
 import opentracing
 
+try:
+    from django.http import HttpRequest
+    HAVE_DJANGO = True
+except ImportError:
+    HAVE_DJANGO = False
+
 from opentracing import child_of, follows_from
 from opentracing.ext import tags as opentracing_tags
 
@@ -94,6 +100,9 @@ def inspect_span_from_stack(depth=100):
             break
 
         for k, v in frame.f_locals.items():
+            if HAVE_DJANGO:
+                if isinstance(v, HttpRequest) and hasattr(v, "current_span"):
+                    span = v.current_span
             if isinstance(v, opentracing.Span):
                 span = v
 
